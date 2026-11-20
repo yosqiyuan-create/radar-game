@@ -64,7 +64,7 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 .cell:nth-child(10n){border-right:none}
 .sweep{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .big .grid{width:min(calc(100vw - 44px),400px)}
-#battle.op .big .grid{width:min(calc(100vw - 44px),400px,calc(100dvh - 440px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))}
+#battle.op .big .grid{width:min(calc(100vw - 44px),400px,calc(100dvh - 445px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))}
 .small .grid{width:min(46vw,200px)}
 .small.board{grid-template-columns:10px 1fr;grid-template-rows:10px 1fr}
 .small .cl,.small .rl{font-size:7px;line-height:10px}
@@ -195,7 +195,7 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
   <div class="topbar">
     <span id="lvLabel"></span>
     <span id="turnLabel"></span>
-    <button id="muteBtn">音 ON</button>
+    <span style="display:flex;gap:6px"><button id="quitBtn">降参</button><button id="muteBtn">音 ON</button></span>
   </div>
   <div id="msg"></div>
   <div class="board big" id="enemyBoard"></div>
@@ -212,7 +212,6 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
       <div class="ttl" style="margin-top:4px">自艦隊</div><div id="myFleet"></div>
     </div>
   </div>
-  <button id="quitBtn" style="padding:6px 14px;font-size:13px;margin-top:2px">降参してタイトルへ</button>
 </section>
 
 <div class="overlay" id="result">
@@ -812,7 +811,7 @@ $("startBtn").addEventListener("click", () => startBattle());
 const newCd = () => ({cv:0, bb:0, ca:0, ss:0, dd:0});
 function startBattle(){
   enemy = new Fleet(); enemy.randomize();
-  $("quitBtn").textContent = "降参してタイトルへ"; $("quitBtn").dataset.confirm = "";
+  $("quitBtn").textContent = "降参"; $("quitBtn").dataset.confirm = "";
   pShots = pHits = cShots = cHits = 0; turn = 1; lastCpu = []; busy = false; over = false;
   act = "fire"; aVert = false; pending = null;
   plCd = newCd(); plScans = []; ai = {cd:newCd(), scans:[]};
@@ -856,7 +855,7 @@ function enemyTap(r, c){
 }
 $("oriBtn").addEventListener("click", () => { aVert = !aVert; sfx.tap(); renderBattle(); });
 
-function setMsg(t, cls){ const m = $("msg"); m.innerHTML = t; m.className = cls || ""; }
+function setMsg(t, cls){ const m = $("msg"); m.innerHTML = `<span>${t}</span>`; m.className = cls || ""; }
 
 function renderBattle(reveal = false){
   const pv = new Set();
@@ -918,7 +917,7 @@ function describe(ev, mine){
   const sunkTxt = sunk.map(s => `${foe}${s.ship.name}${mine ? "を沈めた！" : "が沈没！"}`).join(" ");
   const shotTxt = () => {
     if (sunk.length) return `撃沈！ ${sunkTxt}`;
-    if (hits.length) return mine ? (hits.length > 1 ? `${hits.length}発命中！` : "命中！") : `被弾！ ${hits.map(h => h.ship.name).join("・")}に命中`;
+    if (hits.length) return mine ? (hits.length > 1 ? `${hits.length}発命中！` : "命中！") : `被弾！ ${[...new Set(hits.map(h => h.ship.name))].join("・")}に命中`;
     return "はずれ";
   };
   let t;
@@ -1019,8 +1018,8 @@ $("quitBtn").addEventListener("click", () => {
   if ($("quitBtn").dataset.confirm === "1"){
     $("quitBtn").dataset.confirm = ""; finish(false); return;
   }
-  $("quitBtn").dataset.confirm = "1"; $("quitBtn").textContent = "本当に降参？（もう一度タップ）";
-  setTimeout(() => { $("quitBtn").dataset.confirm = ""; if (!over) $("quitBtn").textContent = "降参してタイトルへ"; }, 3000);
+  $("quitBtn").dataset.confirm = "1"; $("quitBtn").textContent = "本当に？";
+  setTimeout(() => { $("quitBtn").dataset.confirm = ""; if (!over) $("quitBtn").textContent = "降参"; }, 3000);
 });
 $("muteBtn").addEventListener("click", () => { muted = !muted; $("muteBtn").textContent = muted ? "音 OFF" : "音 ON"; });
 
