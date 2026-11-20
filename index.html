@@ -134,6 +134,12 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 .mvd button.pend{background:var(--warn);color:#012;border-color:var(--warn)}
 .cell.mvsrc{box-shadow:inset 0 0 0 2px var(--warn)}
 .intel.stale{opacity:.4;border-style:dotted}
+.cell.gpc{outline:3px solid #fff;outline-offset:-3px;z-index:4;box-shadow:0 0 12px #fff}
+.gpfocus{outline:3px solid #fff !important;outline-offset:2px}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 50px);transform:translateX(-50%);z-index:20;
+  background:var(--panel);border:1.5px solid var(--cyan);color:var(--cyan);border-radius:10px;padding:8px 14px;font-size:14px;font-weight:700;
+  opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1}
 .small .intel.stale b{display:none}
 .bottom{display:flex;gap:10px;width:100%;max-width:420px;align-items:flex-start}
 .fleetbox{flex:1;display:flex;flex-direction:column;gap:4px;font-size:12px;min-width:0}
@@ -265,10 +271,11 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
   </div>
 </div>
 
+<div id="toast"></div>
 </div>
 <script>
 "use strict";
-const VERSION = "v1.5";
+const VERSION = "v1.6";
 const N = 10;
 const COLS = "ABCDEFGHIJ";
 const SHIPS = [
@@ -867,6 +874,7 @@ const ARW = [[-1,0,"↑"],[1,0,"↓"],[0,-1,"←"],[0,1,"→"]];
 function show(id){
   document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
   $("result").classList.remove("show");
+  GP.focus = null; gpDecorate();
 }
 
 /* ---------- title ---------- */
@@ -945,6 +953,8 @@ function renderSetup(){
   $("setupHint").innerHTML = player.allPlaced()
     ? "配置完了！ 艦をタップで選び直し／もう一度タップで回転"
     : `<b style="color:var(--g)">${s.name}（${s.len}マス）</b>${s.placed ? "を動かす場所をタップ" : "を置く場所をタップ"}<br><span style="color:var(--dim);font-size:12px">置いた艦をタップすると回転</span>`;
+  if (GP.on) $("setupHint").innerHTML += `<br><span style="color:var(--cyan);font-size:11px">🎮 十字:場所 A:置く L/R:艦 Y:回転 X:おまかせ ≡:出撃</span>`;
+  gpDecorate();
 }
 $("rotBtn").addEventListener("click", () => {
   vert = !vert; sfx.tap();
@@ -1030,7 +1040,7 @@ function renderMovePanel(){
     });
     md.appendChild(b);
   });
-  $("yourTurn").textContent = busy ? "" : mvPend ? "▼ 同じ矢印をもう一度押すと移動（1ターン使う）" : "▼ 動かす艦と方向を選んでください（下の自軍の海に表示）";
+  $("yourTurn").textContent = busy ? "" : GP.on ? (mvPend ? "▼ 🎮 Aか同じ方向で移動（1ターン使う）" : "▼ 🎮 X:艦を選ぶ 十字:方向 B:やめる") : mvPend ? "▼ 同じ矢印をもう一度押すと移動（1ターン使う）" : "▼ 動かす艦と方向を選んでください（下の自軍の海に表示）";
 }
 function playerMove(i, dr, dc){
   busy = true;
@@ -1101,10 +1111,11 @@ function renderBattle(reveal = false){
     $("oriBtn").style.visibility = o ? "visible" : "hidden";
     $("oriBtn").textContent = "向き：" + (aVert ? "縦" : "横");
     $("actHint").innerHTML = pending && act !== "fire"
-      ? `<b style="color:var(--warn)">${ABIL[act].name}：もう一度 ${coord(pending.r, pending.c)} をタップで実行</b>`
+      ? `<b style="color:var(--warn)">${ABIL[act].name}：${GP.on ? "Aボタン" : "もう一度 " + coord(pending.r, pending.c) + " をタップ"}で実行</b>`
       : HINT[act];
   }
-  if (!(mode === "op" && act === "move")) $("yourTurn").textContent = (!busy && !over) ? "▼ あなたの番です" : "";
+  if (!(mode === "op" && act === "move")) $("yourTurn").textContent = (!busy && !over) ? (GP.on ? (mode === "op" ? "▼ あなたの番　🎮 A:決定 B:取消 L/R:行動 Y:向き" : "▼ あなたの番　🎮 十字:狙う A:撃つ") : "▼ あなたの番です") : "";
+  gpDecorate();
 }
 
 /* describe an action result */
@@ -1216,6 +1227,7 @@ function finish(win){
     <tr><td>CPUの命中率</td><td>${cacc}%（${cHits}/${cShots}）</td></tr>
     <tr><td>通算</td><td>${st[key].w}勝${st[key].l}敗</td></tr>`;
   $("result").classList.add("show");
+  GP.focus = null; gpDecorate();
 }
 $("againBtn").addEventListener("click", () => { sfx.ping(); startSetup(); });
 $("seeBtn").addEventListener("click", () => {
@@ -1235,6 +1247,147 @@ $("quitBtn").addEventListener("click", () => {
 document.querySelectorAll(".muteBtn").forEach(b => b.addEventListener("click", () => { muted = !muted; applySound(); }));
 document.querySelectorAll(".bgmBtn").forEach(b => b.addEventListener("click", () => { bgmOn = !bgmOn; applySound(); }));
 applySound();
+
+/* ---------- game controller (Backbone Pro etc.) ---------- */
+// standard mapping: 0 A, 1 B, 2 X, 3 Y, 4 L1, 5 R1, 8 options, 9 menu, 12-15 d-pad
+const GP = {on:false, prev:{}, hold:{}, cur:{r:4, c:4}, sc:{r:0, c:0}, focus:null};
+function toast(t){ const e = $("toast"); e.textContent = t; e.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove("show"), 2200); }
+function gpActive(){ return [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(p => p && p.connected); }
+function gpSetOn(v, name){
+  if (GP.on === v) return;
+  GP.on = v; document.body.classList.toggle("gp", v);
+  toast(v ? "🎮 コントローラー接続" : "🎮 コントローラー切断");
+  refreshScreen();
+}
+function refreshScreen(){
+  const id = document.querySelector(".screen.active").id;
+  if (id === "setup") renderSetup(); else if (id === "battle" && enemy) renderBattle(over); else gpDecorate();
+}
+window.addEventListener("gamepadconnected", () => gpSetOn(true));
+window.addEventListener("gamepaddisconnected", () => { if (!gpActive()) gpSetOn(false); });
+function gpLoop(){
+  const p = gpActive();
+  if (p){
+    if (!GP.on) gpSetOn(true);
+    const b = i => !!(p.buttons[i] && p.buttons[i].pressed);
+    const ax = i => p.axes[i] || 0;
+    const keys = {
+      A:b(0), B:b(1), X:b(2), Y:b(3), L:b(4) || b(6), R:b(5) || b(7), SEL:b(8), MENU:b(9),
+      U:b(12) || ax(1) < -.55, D:b(13) || ax(1) > .55, LF:b(14) || ax(0) < -.55, RT:b(15) || ax(0) > .55,
+    };
+    const now = performance.now();
+    for (const k in keys){
+      const dir = ["U", "D", "LF", "RT"].includes(k);
+      if (keys[k] && !GP.prev[k]){ GP.hold[k] = now + 280; gpPress(k); }
+      else if (keys[k] && dir && now > GP.hold[k]){ GP.hold[k] = now + 110; gpPress(k); }
+      GP.prev[k] = keys[k];
+    }
+  }
+  requestAnimationFrame(gpLoop);
+}
+requestAnimationFrame(gpLoop);
+
+const DV = {U:[-1, 0], D:[1, 0], LF:[0, -1], RT:[0, 1]};
+function gpPress(k){
+  initAudio();
+  if (k === "MENU" && !$("setup").classList.contains("active")){ bgmOn = !bgmOn; applySound(); toast(bgmOn ? "BGM ON" : "BGM OFF"); return; }
+  if (k === "SEL"){ muted = !muted; applySound(); toast(muted ? "音 OFF" : "音 ON"); return; }
+  if ($("rulesBox").classList.contains("show")){
+    const c = $("rulesBox").querySelector(".card");
+    if (k === "U") c.scrollTop -= 80; else if (k === "D") c.scrollTop += 80; else if (k === "A" || k === "B") $("rulesClose").click();
+    return;
+  }
+  if ($("result").classList.contains("show")){ gpNav($("result"), k); return; }
+  const id = document.querySelector(".screen.active").id;
+  if (id === "title") gpNav($("title"), k);
+  else if (id === "setup") gpSetup(k);
+  else if (id === "battle") gpBattle(k);
+}
+// move a focus ring between visible buttons by direction
+function gpNav(root, k){
+  const list = [...root.querySelectorAll("button")].filter(b => !b.disabled && b.offsetParent !== null);
+  if (!list.length) return;
+  if (!GP.focus || !list.includes(GP.focus)) GP.focus = list.find(b => b.id === "goSetup" || b.id === "againBtn") || list[0];
+  if (k === "A"){ const f = GP.focus; f.click(); GP.focus = list.includes(f) ? f : null; gpDecorate(); return; }
+  if (k === "B" && root.id === "result"){ $("toTitleBtn").click(); return; }
+  if (!DV[k]) return;
+  const [dy, dx] = DV[k];
+  const r0 = GP.focus.getBoundingClientRect(), cx = r0.left + r0.width / 2, cy = r0.top + r0.height / 2;
+  let best = null, bd = Infinity;
+  for (const b of list){
+    if (b === GP.focus) continue;
+    const r = b.getBoundingClientRect(), x = r.left + r.width / 2 - cx, y = r.top + r.height / 2 - cy;
+    const along = dx ? x * dx : y * dy, across = dx ? Math.abs(y) : Math.abs(x);
+    if (along <= 4) continue;
+    const d = along + across * 2.5;
+    if (d < bd){ bd = d; best = b; }
+  }
+  if (best){ GP.focus = best; sfx.tap(); gpDecorate(); }
+}
+function gpSetup(k){
+  if (DV[k]){ GP.sc.r = clamp(GP.sc.r + DV[k][0], 0, N - 1); GP.sc.c = clamp(GP.sc.c + DV[k][1], 0, N - 1); renderSetup(); return; }
+  if (k === "A") setupTap(GP.sc.r, GP.sc.c);
+  else if (k === "B") $("backBtn").click();
+  else if (k === "X") $("autoBtn").click();
+  else if (k === "Y") $("rotBtn").click();
+  else if (k === "L" || k === "R"){ selShip = (selShip + (k === "R" ? 1 : SHIPS.length - 1)) % SHIPS.length; const s = player.ships[selShip]; if (s.placed) vert = s.v; sfx.tap(); renderSetup(); }
+  else if (k === "MENU"){ if (!$("startBtn").disabled) $("startBtn").click(); }
+}
+function gpBattle(k){
+  if (over){ if (k === "A" || k === "B") $("quitBtn").click(); return; }
+  if (busy) return;
+  if (k === "L" || k === "R"){
+    const ids = [...document.querySelectorAll("#acts button")].filter(b => !b.disabled && b.offsetParent !== null).map(b => b.dataset.act);
+    if (ids.length < 2) return;
+    const nx = ids[(ids.indexOf(act) + (k === "R" ? 1 : ids.length - 1)) % ids.length];
+    if (nx === "fire"){ act = "fire"; pending = null; mvPend = null; sfx.tap(); renderBattle(); }
+    else { selectAct(nx); if (act !== "fire" && act !== "move"){ pending = {...GP.cur}; renderBattle(); } }
+    return;
+  }
+  if (k === "B"){ act = "fire"; pending = null; mvPend = null; sfx.tap(); renderBattle(); return; }
+  if (act === "move"){
+    if (DV[k]){
+      const [dr, dc] = DV[k];
+      if (mvShip < 0 || !player.canMove(mvShip, dr, dc)){ sfx.tap(); return; }
+      if (mvPend && mvPend[0] === dr && mvPend[1] === dc){ playerMove(mvShip, dr, dc); return; }
+      mvPend = [dr, dc]; sfx.tap(); renderBattle(); return;
+    }
+    if (k === "A" && mvPend){ playerMove(mvShip, mvPend[0], mvPend[1]); return; }
+    if (k === "X"){
+      const ids = player.ships.map((s, i) => i).filter(i => player.movable(i));
+      if (ids.length){ mvShip = ids[(ids.indexOf(mvShip) + 1) % ids.length]; mvPend = null; sfx.tap(); renderBattle(); }
+    }
+    return;
+  }
+  if (DV[k]){
+    GP.cur.r = clamp(GP.cur.r + DV[k][0], 0, N - 1); GP.cur.c = clamp(GP.cur.c + DV[k][1], 0, N - 1);
+    if (act !== "fire") pending = {...GP.cur};
+    renderBattle(); return;
+  }
+  if (k === "A"){
+    if (act !== "fire") pending = {...GP.cur};
+    enemyTap(GP.cur.r, GP.cur.c);
+    return;
+  }
+  if (k === "Y" && ABIL[act] && ABIL[act].ori){ aVert = !aVert; sfx.tap(); renderBattle(); }
+}
+function gpDecorate(){
+  document.querySelectorAll(".gpfocus").forEach(e => e.classList.remove("gpfocus"));
+  document.querySelectorAll(".cell.gpc").forEach(e => e.classList.remove("gpc"));
+  if (!GP.on) return;
+  const overlay = $("result").classList.contains("show") ? $("result") : null;
+  const id = document.querySelector(".screen.active").id;
+  if (overlay || id === "title"){
+    const root = overlay || $("title");
+    const list = [...root.querySelectorAll("button")].filter(b => !b.disabled && b.offsetParent !== null);
+    if (!GP.focus || !list.includes(GP.focus)) GP.focus = list.find(b => b.id === "goSetup" || b.id === "againBtn") || list[0];
+    if (GP.focus) GP.focus.classList.add("gpfocus");
+  } else if (id === "setup" && setupUI){
+    setupUI.cells[GP.sc.r][GP.sc.c].classList.add("gpc");
+  } else if (id === "battle" && enemyUI && !over && act !== "move"){
+    enemyUI.cells[GP.cur.r][GP.cur.c].classList.add("gpc");
+  }
+}
 
 $("ver").textContent = VERSION;
 renderTitle();
