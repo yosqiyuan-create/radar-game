@@ -50,8 +50,11 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes blink{0%,100%{opacity:0}10%{opacity:1}50%{opacity:.1}}
 .levels{display:flex;gap:8px;width:100%;max-width:360px}
-.levels button{flex:1;padding:11px 4px}
-.stats{font-size:12px;color:var(--dim);text-align:center;min-height:1.2em}
+.levels button{flex:1;padding:11px 2px}
+#levels{gap:5px}
+#levels button{font-size:14px;letter-spacing:0}
+#levels button[data-lv=oni].on{background:var(--hit);border-color:var(--hit);box-shadow:0 0 14px rgba(255,74,46,.6)}
+.stats{font-size:12px;color:var(--dim);text-align:center;min-height:2.6em;line-height:1.35}
 .note{font-size:12px;color:var(--dim);text-align:center;line-height:1.6}
 .linkbtn{background:none;border:none;color:var(--g2);font-size:14px;text-decoration:underline;padding:4px}
 
@@ -118,12 +121,20 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 #msg.yellow{color:var(--warn);text-shadow:0 0 8px rgba(255,210,63,.6)}
 #msg.cyan{color:var(--cyan);text-shadow:0 0 8px rgba(95,216,255,.6)}
 .label{font-size:12px;color:var(--dim);letter-spacing:.2em}
-.acts{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;width:100%;max-width:420px}
-.acts button{padding:5px 0 4px;font-size:13px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.15}
+.acts{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;width:100%;max-width:420px}
+.acts button{padding:5px 0 4px;font-size:12.5px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.15}
 .acts button small{font-size:9px;font-weight:500;opacity:.85;letter-spacing:0}
 .actrow{display:flex;gap:6px;width:100%;max-width:420px;align-items:center;min-height:30px}
 #actHint{flex:1;font-size:12px;line-height:1.3;color:var(--txt)}
 #oriBtn{padding:4px 10px;font-size:13px;flex-shrink:0}
+.mvs{display:flex;gap:3px;flex:1;min-width:0}
+.mvs button{flex:1;padding:6px 0;font-size:12px;border-radius:8px;min-width:0}
+.mvd{display:flex;gap:3px}
+.mvd button{width:32px;padding:6px 0;font-size:14px;border-radius:8px}
+.mvd button.pend{background:var(--warn);color:#012;border-color:var(--warn)}
+.cell.mvsrc{box-shadow:inset 0 0 0 2px var(--warn)}
+.intel.stale{opacity:.4;border-style:dotted}
+.small .intel.stale b{display:none}
 .bottom{display:flex;gap:10px;width:100%;max-width:420px;align-items:flex-start}
 .fleetbox{flex:1;display:flex;flex-direction:column;gap:4px;font-size:12px;min-width:0}
 .fleetbox .ttl{color:var(--dim);letter-spacing:.15em;font-size:11px}
@@ -171,9 +182,11 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
   </div>
   <div class="sub" style="letter-spacing:.15em">CPUの強さ</div>
   <div class="levels" id="levels">
+    <button data-lv="rookie">新兵</button>
     <button data-lv="easy">かんたん</button>
     <button data-lv="normal" class="on">ふつう</button>
     <button data-lv="hard">つよい</button>
+    <button data-lv="oni">鬼</button>
   </div>
   <div class="stats" id="stats"></div>
   <button class="big" id="goSetup">作戦開始</button>
@@ -205,6 +218,7 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
   <div class="board big" id="enemyBoard"></div>
   <div class="acts" id="acts"></div>
   <div class="actrow" id="actRow"><div id="actHint"></div><button id="oriBtn">向き：横</button></div>
+  <div class="actrow" id="movePanel" style="display:none"><div id="moveShips" class="mvs"></div><div class="mvd" id="moveDirs"></div></div>
   <div id="yourTurn"></div>
   <div class="bottom">
     <div>
@@ -242,6 +256,7 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
       <div class="ab"><b>探知（巡洋艦）</b> 1行（横）か1列（縦）まるごと、まだ当たっていない敵艦のマス数がわかる。<span>休み3ターン</span></div>
       <div class="ab"><b>魚雷（潜水艦）</b> 選んだ行か列に、近い端から魚雷を発射。最初にぶつかった艦に命中し、通ったマスは「何もない」とわかる。<span>休み5ターン</span></div>
       <div class="ab"><b>ソナー（駆逐艦）</b> そのマスを砲撃し、さらに周り8マスに敵艦がいるか（有／無）がわかる。<span>休み2ターン</span></div>
+      <div class="ab"><b>移動</b> まだ1発も当たっていない艦を、上下左右に1マス動かす（その番は撃てない）。すでに撃たれたマスには入れない。相手には「移動した」ことだけ伝わり、どの艦かは分からない。相手のそれまでの偵察情報は「?」付きの古い情報になる。<span>何度でも</span></div>
       <h3>見方</h3>
       <p>調べた範囲は水色の点線で表示され、右上の数字は「まだ当たっていない艦のマス数」です。命中させると数字が減ります。敵が調べた範囲は、自軍の海にオレンジで表示されます。</p>
       <p>能力は1回目のタップで範囲が黄色く表示され、<b>同じマスをもう一度タップ</b>すると実行します。</p>
@@ -253,7 +268,7 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 </div>
 <script>
 "use strict";
-const VERSION = "v1.3";
+const VERSION = "v1.5";
 const N = 10;
 const COLS = "ABCDEFGHIJ";
 const SHIPS = [
@@ -278,7 +293,8 @@ const HINT = {
   ss:"横＝行、縦＝列に近い端から発射。タップ → もう一度タップ",
   dd:"砲撃＋周り8マスを探る。タップ → もう一度タップ",
 };
-const LV = {easy:"かんたん", normal:"ふつう", hard:"つよい"};
+const LV = {rookie:"新兵", easy:"かんたん", normal:"ふつう", hard:"つよい", oni:"鬼"};
+const LVNOTE = {rookie:"でたらめに撃つだけ。能力も移動も使わない", easy:"当たったら周りを狙う。能力はたまに使う", normal:"艦の向きを推理して追いかける。能力をよく使う", hard:"確率を計算して撃つ。偵察の数字で推理し、偵察されると逃げる", oni:"「つよい」＋能力の休みが1ターン短い。偵察されると必ず逃げる"};
 const MODE = {op:"作戦", classic:"本家"};
 const $ = id => document.getElementById(id);
 const rnd = n => Math.floor(Math.random() * n);
@@ -321,15 +337,45 @@ class Fleet {
     for (const [y, x] of cellsOf(r, c, s.len, v)) this.grid[y][x] = i;
     return true;
   }
-  randomize(){
-    this.grid = grid0(-1);
-    this.ships.forEach(s => s.placed = false);
-    this.ships.forEach((s, i) => {
-      let ok = false;
-      while (!ok){ ok = this.place(i, rnd(N), rnd(N), Math.random() < .5); }
-    });
+  randomize(spread = false){
+    for (let tries = 0; tries < 200; tries++){
+      this.grid = grid0(-1);
+      this.ships.forEach(s => s.placed = false);
+      this.ships.forEach((s, i) => {
+        let ok = false;
+        while (!ok){ ok = this.place(i, rnd(N), rnd(N), Math.random() < .5); }
+      });
+      if (!spread || this.noTouch()) return;
+    }
+  }
+  noTouch(){ // no two ships side by side
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++){
+      const g = this.grid[y][x]; if (g === -1) continue;
+      for (const [dy, dx] of [[0,1],[1,0]]){
+        const yy = y + dy, xx = x + dx;
+        if (inB(yy, xx) && this.grid[yy][xx] !== -1 && this.grid[yy][xx] !== g) return false;
+      }
+    }
+    return true;
   }
   allPlaced(){ return this.ships.every(s => s.placed); }
+  // move an unhit ship 1 cell; cannot enter cells that were already shot
+  canMove(i, dr, dc){
+    const s = this.ships[i];
+    if (s.hits > 0) return false;
+    for (const [y, x] of cellsOf(s.r + dr, s.c + dc, s.len, s.v)){
+      if (!inB(y, x)) return false;
+      const g = this.grid[y][x];
+      if ((g !== -1 && g !== i) || this.shots[y][x]) return false;
+    }
+    return true;
+  }
+  move(i, dr, dc){
+    if (!this.canMove(i, dr, dc)) return false;
+    const s = this.ships[i];
+    return this.place(i, s.r + dr, s.c + dc, s.v);
+  }
+  movable(i){ return DIRS.some(([dr, dc]) => this.canMove(i, dr, dc)); }
   fire(r, c){
     this.shots[r][c] = true;
     const i = this.grid[r][c];
@@ -453,6 +499,7 @@ function analyze(def, scans, level){
   if (level !== "easy"){
     for (const s of scans){
       s.cells.forEach(([y, x]) => scanned[y][x] = true);
+      if (s.stale) continue;
       const newHits = s.unshot.filter(([y, x]) => k[y][x] >= 2).length;
       const unk = s.unshot.filter(([y, x]) => k[y][x] === 0 && !excl[y][x]);
       if (s.min){ // sonar "yes"
@@ -591,7 +638,14 @@ function targetCands(k, hits, ok){
 
 function abilityReady(own, cd, id){ return !own.sunk(own.ship(id)) && cd[id] === 0; }
 
-function cpuDecide(def, own, level, ai, mode){
+function cpuDecide(def, own, lvl, ai, mode){
+  if (lvl === "rookie"){
+    const u = [];
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!def.shots[y][x]) u.push([y, x]);
+    const [r, c] = pick(u);
+    return {act:"fire", r, c, v:false};
+  }
+  const oni = lvl === "oni", level = oni ? "hard" : lvl;
   const A = analyze(def, ai.scans, level);
   const t = A.target();
   const fire = {act:"fire", r:t[0], c:t[1], v:false};
@@ -607,6 +661,10 @@ function cpuDecide(def, own, level, ai, mode){
     return fire;
   }
   const use = id => av(id) && (level === "hard" || Math.random() < .7);
+  if (ai.foeScans){
+    const mv = cpuMove(own, ai, oni ? "oni" : level, A.hits.length > 0);
+    if (mv) return {act:"move", ...mv};
+  }
   if (A.hits.length){
     if (use("bb")) return {act:"bb", ...A.bestSalvoNear(t)};
     if (av("dd")) return {...fire, act:"dd"};
@@ -618,6 +676,29 @@ function cpuDecide(def, own, level, ai, mode){
   if (use("bb")) return {act:"bb", ...A.bestSalvo()};
   if (av("dd")) return {...fire, act:"dd"};
   return fire;
+}
+// CPU dodges: move an unhit ship out of the player's recent scan areas
+function cpuMove(own, ai, level, attacking){
+  if (level === "easy" || level === "rookie") return null;
+  if (ai.turn - (ai.lastMove ?? -99) < (level === "oni" ? 2 : 3)) return null;
+  // while attacking, only dodge the scan the player made just now
+  const live = attacking ? ai.foeScans.filter(s => s.fresh && !s.stale && s.turn === ai.turn) : ai.foeScans.filter(s => !s.stale);
+  if (!live.length) return null;
+  const danger = cells => live.reduce((a, s) =>
+    a + (s.cells.some(([y, x]) => cells.some(([p, q]) => p === y && q === x)) ? (s.type === "ca" ? 1 : 2) : 0), 0);
+  let best = null;
+  own.ships.forEach((sh, i) => {
+    if (sh.hits > 0) return;
+    const cur = danger(own.shipCells(sh));
+    if (!cur) return;
+    for (const [dr, dc] of DIRS){
+      if (!own.canMove(i, dr, dc)) continue;
+      const gain = cur - danger(cellsOf(sh.r + dr, sh.c + dc, sh.len, sh.v));
+      if (gain > 0 && (!best || gain > best.gain || (gain === best.gain && Math.random() < .5))) best = {i, dr, dc, gain};
+    }
+  });
+  if (!best) return null;
+  return Math.random() < ({oni:1, hard:.7}[level] ?? .3) ? best : null;
 }
 // simple wrapper (classic rules)
 function cpuPick(f, level){ const d = cpuDecide(f, null, level, {scans:[], cd:{}}, "classic"); return [d.r, d.c]; }
@@ -717,6 +798,7 @@ const sfx = {
   sunk: (d = .12) => { noise(1.4, "lowpass", 500, 1.2, d); tone(90, 1.2, "sawtooth", .15, 25, d); tone(60, 1.2, "sine", .3, 20, d + .2); },
   ping: () => { tone(1250, .9, "sine", .07); tone(1250, .6, "sine", .03, null, .35); },
   scan: () => { tone(400, .5, "sine", .05, 1600); tone(1600, .4, "sine", .04, null, .5); },
+  move: () => { tone(70, 1, "sawtooth", .08, 50); noise(1, "lowpass", 250, .4); },
   torp: () => { noise(.9, "bandpass", 400, .35); tone(180, .9, "triangle", .05, 90); },
   win:  () => [523, 659, 784, 1046].forEach((f, i) => tone(f, .35, "triangle", .1, null, i * .14)),
   lose: () => [392, 330, 262, 196].forEach((f, i) => tone(f, .45, "triangle", .1, null, i * .2)),
@@ -765,8 +847,8 @@ function renderIntel(ui, scans, def, foe){
     let label, zero;
     if (s.type === "dd"){ label = s.k ? "有" : "無"; zero = !s.k; }
     else { const n = scanNow(def, s); label = n; zero = n <= 0; }
-    d.className = "intel" + (foe ? " foe" : "") + (zero ? " zero" : "") + (i === scans.length - 1 && s.fresh ? " new" : "");
-    d.innerHTML = `<b>${label}</b>`;
+    d.className = "intel" + (foe ? " foe" : "") + (zero ? " zero" : "") + (s.stale ? " stale" : "") + (i === scans.length - 1 && s.fresh && !s.stale ? " new" : "");
+    d.innerHTML = `<b>${label}${s.stale ? "?" : ""}</b>`;
     ui.layer.appendChild(d);
   });
 }
@@ -778,6 +860,9 @@ let selShip = 0, vert = false, busy = false, over = false;
 let pShots = 0, pHits = 0, cShots = 0, cHits = 0, turn = 1, lastCpu = [];
 let act = "fire", aVert = false, pending = null;
 let plCd, plScans, ai;
+let mvShip = -1, mvPend = null;
+const SHORT = {cv:"空母", bb:"戦艦", ca:"巡洋", ss:"潜水", dd:"駆逐"};
+const ARW = [[-1,0,"↑"],[1,0,"↓"],[0,-1,"←"],[0,1,"→"]];
 
 function show(id){
   document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
@@ -787,8 +872,8 @@ function show(id){
 /* ---------- title ---------- */
 function renderTitle(){
   const st = loadStats();
-  const parts = Object.keys(LV).map(k => { const s = st[mode === "classic" ? k : "op-" + k] || {w:0, l:0}; return `${LV[k]} ${s.w}勝${s.l}敗`; });
-  $("stats").textContent = `戦績（${MODE[mode]}）：` + parts.join(" ／ ");
+  const s = st[statKey()] || {w:0, l:0};
+  $("stats").innerHTML = `${LVNOTE[level]}<br>戦績（${MODE[mode]}・${LV[level]}）：${s.w}勝${s.l}敗`;
   const br = $("bigradar"); br.querySelectorAll(".blip").forEach(b => b.remove());
   for (let i = 0; i < 4; i++){
     const b = document.createElement("div"); b.className = "blip";
@@ -801,6 +886,7 @@ function renderTitle(){
 document.querySelectorAll("#levels button").forEach(b => b.addEventListener("click", () => {
   level = b.dataset.lv; sfx.tap();
   document.querySelectorAll("#levels button").forEach(x => x.classList.toggle("on", x === b));
+  renderTitle();
 }));
 document.querySelectorAll("#modes button").forEach(b => b.addEventListener("click", () => {
   mode = b.dataset.mode; sfx.tap();
@@ -873,11 +959,11 @@ $("startBtn").addEventListener("click", () => startBattle());
 /* ---------- battle ---------- */
 const newCd = () => ({cv:0, bb:0, ca:0, ss:0, dd:0});
 function startBattle(){
-  enemy = new Fleet(); enemy.randomize();
+  enemy = new Fleet(); enemy.randomize(level === "oni");
   $("quitBtn").textContent = "降参"; $("quitBtn").dataset.confirm = "";
   pShots = pHits = cShots = cHits = 0; turn = 1; lastCpu = []; busy = false; over = false;
   act = "fire"; aVert = false; pending = null;
-  plCd = newCd(); plScans = []; ai = {cd:newCd(), scans:[]};
+  plCd = newCd(); plScans = []; ai = {cd:newCd(), scans:[], foeScans:plScans, turn:1, lastMove:null}; mvShip = -1; mvPend = null;
   enemyUI = makeBoard($("enemyBoard"), enemyTap);
   const sw = document.createElement("div"); sw.className = "sweep"; enemyUI.grid.appendChild(sw);
   myUI = makeBoard($("myBoard"), null);
@@ -899,15 +985,18 @@ function buildActs(){
   };
   mk("fire", "砲撃", "通常");
   SHIPS.forEach(s => mk(s.id, ABIL[s.id].short, s.name));
+  mk("move", "移動", "1マス");
 }
 function selectAct(id){
   if (busy || over) return;
-  if (id !== "fire" && !abilityReady(player, plCd, id)) return;
+  if (id !== "fire" && id !== "move" && !abilityReady(player, plCd, id)) return;
   act = act === id && id !== "fire" ? "fire" : id;
-  pending = null; sfx.tap(); renderBattle();
+  pending = null; mvPend = null;
+  if (act === "move"){ const i = player.ships.findIndex((sh, k) => player.movable(k)); mvShip = i; if (i < 0){ act = "fire"; setMsg("動かせる艦がありません", "cyan"); } }
+  sfx.tap(); renderBattle();
 }
 function enemyTap(r, c){
-  if (busy || over) return;
+  if (busy || over || act === "move") return;
   if (act === "fire"){
     if (enemy.shots[r][c]) return;
     playerAct("fire", r, c, false); return;
@@ -918,12 +1007,50 @@ function enemyTap(r, c){
 }
 $("oriBtn").addEventListener("click", () => { aVert = !aVert; sfx.tap(); renderBattle(); });
 
+function renderMovePanel(){
+  const ms = $("moveShips"); ms.innerHTML = "";
+  player.ships.forEach((sh, i) => {
+    if (player.sunk(sh)) return;
+    const b = document.createElement("button");
+    b.textContent = SHORT[sh.id];
+    b.disabled = busy || !player.movable(i);
+    b.classList.toggle("on", i === mvShip);
+    b.addEventListener("click", () => { mvShip = i; mvPend = null; sfx.tap(); renderBattle(); });
+    ms.appendChild(b);
+  });
+  const md = $("moveDirs"); md.innerHTML = "";
+  ARW.forEach(([dr, dc, ch]) => {
+    const b = document.createElement("button");
+    b.textContent = ch;
+    b.disabled = busy || mvShip < 0 || !player.canMove(mvShip, dr, dc);
+    b.classList.toggle("pend", !!mvPend && mvPend[0] === dr && mvPend[1] === dc);
+    b.addEventListener("click", () => {
+      if (mvPend && mvPend[0] === dr && mvPend[1] === dc){ playerMove(mvShip, dr, dc); return; }
+      mvPend = [dr, dc]; sfx.tap(); renderBattle();
+    });
+    md.appendChild(b);
+  });
+  $("yourTurn").textContent = busy ? "" : mvPend ? "▼ 同じ矢印をもう一度押すと移動（1ターン使う）" : "▼ 動かす艦と方向を選んでください（下の自軍の海に表示）";
+}
+function playerMove(i, dr, dc){
+  busy = true;
+  const sh = player.ships[i];
+  player.move(i, dr, dc);
+  ai.scans.forEach(s => s.stale = true);
+  mvPend = null; act = "fire";
+  setMsg(`自軍の${sh.name}を${ARW.find(a => a[0] === dr && a[1] === dc)[2]}に移動（敵の偵察情報は古くなった）`, "cyan");
+  sfx.move();
+  renderBattle();
+  setTimeout(cpuTurn, 1300);
+}
 function setMsg(t, cls){ const m = $("msg"); m.innerHTML = `<span>${t}</span>`; m.className = cls || ""; }
 
 function renderBattle(reveal = false){
   const pv = new Set();
   if (pending && act !== "fire") previewCells(act, pending.r, pending.c, aVert).forEach(([y, x]) => pv.add(y * N + x));
   const lastSet = new Set(lastCpu.map(([y, x]) => y * N + x));
+  const mvPv = new Set();
+  if (act === "move" && mvShip >= 0 && mvPend){ const sh = player.ships[mvShip]; cellsOf(sh.r + mvPend[0], sh.c + mvPend[1], sh.len, sh.v).forEach(([y, x]) => mvPv.add(y * N + x)); }
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++){
     let cl = "cell";
     const ei = enemy.grid[r][c];
@@ -939,6 +1066,8 @@ function renderBattle(reveal = false){
       ml += pi === -1 ? " miss" : " hit" + (player.sunk(player.ships[pi]) ? " sunk" : "");
     }
     if (lastSet.has(r * N + c)) ml += " last";
+    if (act === "move" && mvShip >= 0 && player.grid[r][c] === mvShip) ml += " mvsrc";
+    if (mvPv.has(r * N + c)) ml += " pv";
     myUI.cells[r][c].className = ml;
   }
   renderIntel(enemyUI, plScans, enemy, false);
@@ -953,15 +1082,21 @@ function renderBattle(reveal = false){
   fl(enemy, $("enemyFleet"), false, ai.cd);
   fl(player, $("myFleet"), true, plCd);
   if (mode === "op"){
-    if (act !== "fire" && !abilityReady(player, plCd, act)){ act = "fire"; pending = null; }
+    if (act === "move" && (mvShip < 0 || !player.movable(mvShip))){ mvShip = player.ships.findIndex((sh, k) => player.movable(k)); if (mvShip < 0) act = "fire"; }
+    if (act !== "fire" && act !== "move" && !abilityReady(player, plCd, act)){ act = "fire"; pending = null; }
     document.querySelectorAll("#acts button").forEach(b => {
       const id = b.dataset.act;
       b.classList.toggle("on", id === act);
       if (id === "fire"){ b.disabled = busy || over; return; }
+      if (id === "move"){ b.disabled = busy || over || !player.ships.some((sh, k) => player.movable(k)); return; }
       const sunkShip = player.sunk(player.ship(id));
       b.disabled = busy || over || sunkShip || plCd[id] > 0;
       b.querySelector("small").textContent = sunkShip ? "沈没" : plCd[id] > 0 ? `あと${plCd[id]}` : player.ship(id).name;
     });
+    const isMove = act === "move";
+    $("actRow").style.display = isMove ? "none" : "";
+    $("movePanel").style.display = isMove ? "" : "none";
+    if (isMove) renderMovePanel();
     const o = ABIL[act] && ABIL[act].ori;
     $("oriBtn").style.visibility = o ? "visible" : "hidden";
     $("oriBtn").textContent = "向き：" + (aVert ? "縦" : "横");
@@ -969,7 +1104,7 @@ function renderBattle(reveal = false){
       ? `<b style="color:var(--warn)">${ABIL[act].name}：もう一度 ${coord(pending.r, pending.c)} をタップで実行</b>`
       : HINT[act];
   }
-  $("yourTurn").textContent = (!busy && !over) ? "▼ あなたの番です" : "";
+  if (!(mode === "op" && act === "move")) $("yourTurn").textContent = (!busy && !over) ? "▼ あなたの番です" : "";
 }
 
 /* describe an action result */
@@ -1015,7 +1150,7 @@ function playerAct(a, r, c, v){
   busy = true; pending = null;
   const ev = exec(enemy, a, r, c, v);
   if (a !== "fire") plCd[a] = ABIL[a].cd + 1;
-  if (ev.scan){ plScans.forEach(s => s.fresh = false); ev.scan.fresh = true; plScans.push(ev.scan); }
+  if (ev.scan){ plScans.forEach(s => s.fresh = false); ev.scan.fresh = true; ev.scan.turn = turn; plScans.push(ev.scan); }
   pShots += ev.shots.length; pHits += ev.shots.filter(s => s.hit).length;
   const d = describe(ev, true);
   setMsg(d.t, d.cls); playSound(ev, d);
@@ -1030,9 +1165,22 @@ function cpuTurn(){
   for (const id in ai.cd) if (ai.cd[id] > 0) ai.cd[id]--;
   setMsg("敵の行動…", "red");
   setTimeout(() => {
+    ai.turn = turn;
     const dcs = cpuDecide(player, enemy, level, ai, mode);
+    if (dcs.act === "move"){
+      enemy.move(dcs.i, dcs.dr, dcs.dc);
+      ai.lastMove = turn;
+      plScans.forEach(s => s.stale = true);
+      lastCpu = [];
+      setMsg("敵が艦を移動した！ これまでの偵察情報は古くなった", "red");
+      sfx.move();
+      turn++;
+      for (const id in plCd) if (plCd[id] > 0) plCd[id]--;
+      busy = false; renderBattle();
+      return;
+    }
     const ev = exec(player, dcs.act, dcs.r, dcs.c, dcs.v);
-    if (dcs.act !== "fire") ai.cd[dcs.act] = ABIL[dcs.act].cd + 1;
+    if (dcs.act !== "fire") ai.cd[dcs.act] = ABIL[dcs.act].cd + (level === "oni" ? 0 : 1);
     if (ev.scan){ ai.scans.forEach(s => s.fresh = false); ev.scan.fresh = true; ai.scans.push(ev.scan); }
     cShots += ev.shots.length; cHits += ev.shots.filter(s => s.hit).length;
     lastCpu = ev.shots.length ? ev.shots.map(s => [s.r, s.c]) : [];
