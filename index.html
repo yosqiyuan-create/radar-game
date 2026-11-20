@@ -266,6 +266,14 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
       <h3>見方</h3>
       <p>調べた範囲は水色の点線で表示され、右上の数字は「まだ当たっていない艦のマス数」です。命中させると数字が減ります。敵が調べた範囲は、自軍の海にオレンジで表示されます。</p>
       <p>能力は1回目のタップで範囲が黄色く表示され、<b>同じマスをもう一度タップ</b>すると実行します。</p>
+      <h3>🎮 コントローラー（Backbone Pro など）</h3>
+      <p>ゲームを開いたあと、コントローラーのボタンをどれか<b>1回押す</b>と使えるようになります（「コントローラー接続」と表示されます）。外してもタッチでそのまま遊べます。</p>
+      <div class="ab"><b>タイトル・結果画面</b> 十字キー（左スティック）で選ぶ、Aで決定</div>
+      <div class="ab"><b>配置画面</b> 十字キー：場所／A：置く／L・R：艦を切り替え／Y：回転／X：おまかせ配置／メニュー：出撃／B：戻る</div>
+      <div class="ab"><b>対戦中</b> 十字キー：白い枠で狙う／A：撃つ・能力を実行／L・R：行動を切り替え（砲撃→偵察→…→移動）／Y：向き（横・縦）／B：砲撃に戻す</div>
+      <div class="ab"><b>移動するとき</b> X：艦を選ぶ／十字キー：方向（黄色で表示）／Aか同じ方向をもう一度：移動</div>
+      <div class="ab"><b>いつでも</b> メニュー：BGMのON・OFF（配置画面では出撃）／オプション：音のON・OFF／ルール説明は上下で読み進めてAかBで閉じる</div>
+      <p>音が鳴らないときは、最初に画面を1回タップしてください。</p>
     </div>
     <button class="on" id="rulesClose">閉じる</button>
   </div>
@@ -275,7 +283,7 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 </div>
 <script>
 "use strict";
-const VERSION = "v1.6";
+const VERSION = "v1.6.1";
 const N = 10;
 const COLS = "ABCDEFGHIJ";
 const SHIPS = [
