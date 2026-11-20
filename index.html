@@ -14,7 +14,7 @@
 <style>
 :root{
   --bg:#020c07; --panel:#04170e; --line:#0f4a2c; --g:#39ff88; --g2:#1fae5c; --dim:#2a6b47;
-  --hit:#ff4a2e; --warn:#ffd23f; --txt:#c9ffe0;
+  --hit:#ff4a2e; --warn:#ffd23f; --txt:#c9ffe0; --cyan:#5fd8ff;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
@@ -37,7 +37,7 @@ button:disabled{opacity:.3}
 button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 
 /* title */
-.bigradar{width:min(70vw,280px);aspect-ratio:1;border-radius:50%;position:relative;margin:16px 0 6px;
+.bigradar{width:min(58vw,230px);aspect-ratio:1;border-radius:50%;position:relative;margin:10px 0 4px;flex-shrink:0;
   border:2px solid var(--g2);box-shadow:0 0 30px rgba(57,255,136,.25),inset 0 0 40px rgba(57,255,136,.15);overflow:hidden;
   background:repeating-radial-gradient(circle,transparent 0 18%,rgba(57,255,136,.25) 18% calc(18% + 1px)),
     linear-gradient(transparent calc(50% - .5px),rgba(57,255,136,.3) 50%,transparent calc(50% + .5px)),
@@ -49,9 +49,10 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes blink{0%,100%{opacity:0}10%{opacity:1}50%{opacity:.1}}
 .levels{display:flex;gap:8px;width:100%;max-width:360px}
-.levels button{flex:1;padding:12px 4px}
+.levels button{flex:1;padding:11px 4px}
 .stats{font-size:12px;color:var(--dim);text-align:center;min-height:1.2em}
 .note{font-size:12px;color:var(--dim);text-align:center;line-height:1.6}
+.linkbtn{background:none;border:none;color:var(--g2);font-size:14px;text-decoration:underline;padding:4px}
 
 /* boards */
 .board{display:grid;grid-template-columns:14px 1fr;grid-template-rows:14px 1fr;gap:2px}
@@ -60,10 +61,11 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 .grid{display:grid;grid-template-columns:repeat(10,1fr);aspect-ratio:1;position:relative;overflow:hidden;
   border:1.5px solid var(--g2);background:rgba(4,30,18,.85);box-shadow:0 0 18px rgba(57,255,136,.15) inset}
 .cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);position:relative}
-.cell:nth-child(10n){border-right:none}.cell:nth-last-child(-n+10){border-bottom:none}
+.cell:nth-child(10n){border-right:none}
 .sweep{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .big .grid{width:min(calc(100vw - 44px),400px)}
-.small .grid{width:min(48vw,210px)}
+#battle.op .big .grid{width:min(calc(100vw - 44px),400px,calc(100dvh - 440px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))}
+.small .grid{width:min(46vw,200px)}
 .small.board{grid-template-columns:10px 1fr;grid-template-rows:10px 1fr}
 .small .cl,.small .rl{font-size:7px;line-height:10px}
 
@@ -71,7 +73,6 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 .cell.ship.h.s{border-radius:40% 0 0 40%}.cell.ship.h.e{border-radius:0 40% 40% 0}
 .cell.ship.v.s{border-radius:40% 40% 0 0}.cell.ship.v.e{border-radius:0 0 40% 40%}
 .cell.ship.sel{background:#2a9a60;box-shadow:inset 0 0 0 1px var(--g),0 0 8px var(--g)}
-.cell.ghost{background:rgba(57,255,136,.35)}
 .cell.bad{background:rgba(255,74,46,.45)}
 .cell.miss::after{content:"";position:absolute;left:50%;top:50%;width:26%;height:26%;transform:translate(-50%,-50%);
   border-radius:50%;background:#3d7f5d}
@@ -80,7 +81,20 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 .cell.sunk{background:rgba(255,74,46,.22);box-shadow:inset 0 0 0 1px rgba(255,74,46,.7)}
 .cell.reveal{background:rgba(57,255,136,.18);box-shadow:inset 0 0 0 1px rgba(57,255,136,.5)}
 .cell.last{outline:2px solid var(--warn);outline-offset:-2px;z-index:2}
+.cell.pv{background:rgba(255,210,63,.32)}
 @keyframes pop{from{transform:translate(-50%,-50%) scale(2.2);opacity:.3}}
+
+/* intel overlays */
+.intel{position:absolute;pointer-events:none;border:1.5px dashed var(--cyan);border-radius:4px;z-index:3;
+  background:rgba(95,216,255,.06)}
+.intel b{position:absolute;right:1px;top:1px;font-size:11px;line-height:1;padding:2px 4px;border-radius:4px;
+  background:var(--cyan);color:#012;font-weight:800}
+.intel.zero{border-color:rgba(95,216,255,.3);background:none}
+.intel.zero b{background:rgba(95,216,255,.35)}
+.intel.new{border-style:solid;box-shadow:0 0 10px var(--cyan)}
+.intel.foe{border-color:#ff8a6a;background:rgba(255,138,106,.06)}
+.intel.foe b{background:#ff8a6a}
+.small .intel b{font-size:8px;padding:1px 2px}
 
 /* setup */
 .shiplist{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;max-width:400px}
@@ -92,36 +106,51 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 .hint{font-size:13px;color:var(--txt);text-align:center;min-height:2.6em;line-height:1.3}
 
 /* battle */
+#battle{gap:6px}
 .topbar{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:420px;font-size:13px;color:var(--dim)}
 .topbar button{padding:4px 10px;font-size:13px}
-#msg{width:100%;max-width:420px;text-align:center;font-size:16px;font-weight:700;min-height:1.5em;color:var(--g);
-  text-shadow:0 0 8px rgba(57,255,136,.6)}
+#msg{width:100%;max-width:420px;text-align:center;font-size:15px;font-weight:700;min-height:2.6em;color:var(--g);
+  text-shadow:0 0 8px rgba(57,255,136,.6);display:flex;align-items:center;justify-content:center;line-height:1.3}
 #msg.red{color:var(--hit);text-shadow:0 0 8px rgba(255,74,46,.6)}
 #msg.yellow{color:var(--warn);text-shadow:0 0 8px rgba(255,210,63,.6)}
-.label{font-size:12px;color:var(--dim);letter-spacing:.2em;align-self:flex-start;margin-left:max(0px,calc(50% - 210px))}
+#msg.cyan{color:var(--cyan);text-shadow:0 0 8px rgba(95,216,255,.6)}
+.label{font-size:12px;color:var(--dim);letter-spacing:.2em}
+.acts{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;width:100%;max-width:420px}
+.acts button{padding:5px 0 4px;font-size:13px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.15}
+.acts button small{font-size:9px;font-weight:500;opacity:.85;letter-spacing:0}
+.actrow{display:flex;gap:6px;width:100%;max-width:420px;align-items:center;min-height:30px}
+#actHint{flex:1;font-size:12px;line-height:1.3;color:var(--txt)}
+#oriBtn{padding:4px 10px;font-size:13px;flex-shrink:0}
 .bottom{display:flex;gap:10px;width:100%;max-width:420px;align-items:flex-start}
-.fleetbox{flex:1;display:flex;flex-direction:column;gap:6px;font-size:12px;min-width:0}
+.fleetbox{flex:1;display:flex;flex-direction:column;gap:4px;font-size:12px;min-width:0}
 .fleetbox .ttl{color:var(--dim);letter-spacing:.15em;font-size:11px}
 .fs{display:flex;justify-content:space-between;align-items:center;gap:4px}
 .fs .pips i{width:7px;height:7px;background:var(--g2)}
 .fs .pips i.x{background:var(--hit)}
 .fs.dead{color:#7a3a30;text-decoration:line-through}
 .fs.dead .pips i{background:#5a2a24}
+.fs .cd{font-size:9px;color:var(--warn);margin-left:auto;margin-right:4px}
 #yourTurn{font-size:12px;color:var(--warn);height:1em}
 .shake{animation:shake .4s}
 @keyframes shake{20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-4px,2px)}80%{transform:translate(3px,-1px)}}
 .flash{animation:flash .5s}
 @keyframes flash{from{box-shadow:0 0 60px rgba(255,74,46,.9) inset}}
 
-/* result */
-.overlay{position:fixed;inset:0;background:rgba(1,8,4,.86);display:none;align-items:center;justify-content:center;z-index:10;padding:20px}
+/* overlays */
+.overlay{position:fixed;inset:0;background:rgba(1,8,4,.88);display:none;align-items:center;justify-content:center;z-index:10;padding:20px}
 .overlay.show{display:flex}
-.card{width:100%;max-width:340px;border:1.5px solid var(--g2);border-radius:16px;background:var(--panel);padding:22px 18px;
+.card{width:100%;max-width:360px;max-height:100%;overflow-y:auto;border:1.5px solid var(--g2);border-radius:16px;background:var(--panel);padding:20px 18px;
   display:flex;flex-direction:column;gap:12px;align-items:center;box-shadow:0 0 40px rgba(57,255,136,.2)}
 .card .res{font-size:34px;font-weight:800;letter-spacing:.15em}
 .card table{width:100%;font-size:15px;border-collapse:collapse}
 .card td{padding:5px 2px;border-bottom:1px solid var(--line)}.card td:last-child{text-align:right;color:var(--g)}
 .card button{width:100%}
+.rules{font-size:13px;line-height:1.6;width:100%}
+.rules h3{margin:10px 0 4px;font-size:15px;color:var(--g)}
+.rules p{margin:0 0 6px}
+.rules .ab{border-left:3px solid var(--g2);padding:2px 0 2px 8px;margin:6px 0}
+.rules .ab b{color:var(--g)}
+.rules .ab span{color:var(--warn);font-size:11px}
 </style>
 </head>
 <body>
@@ -131,16 +160,20 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
   <div class="bigradar" id="bigradar"></div>
   <div class="ttlrow"><h1>レーダー作戦</h1><span class="ver" id="ver"></span><span class="by">by Urushihara</span></div>
   <div class="sub">RADAR&nbsp;OPERATION</div>
-  <div style="height:6px"></div>
+  <div class="sub" style="letter-spacing:.15em;margin-top:4px">ルール</div>
+  <div class="levels" id="modes">
+    <button data-mode="op" class="on">作戦ルール</button>
+    <button data-mode="classic">本家ルール</button>
+  </div>
   <div class="sub" style="letter-spacing:.15em">CPUの強さ</div>
-  <div class="levels">
+  <div class="levels" id="levels">
     <button data-lv="easy">かんたん</button>
     <button data-lv="normal" class="on">ふつう</button>
     <button data-lv="hard">つよい</button>
   </div>
   <div class="stats" id="stats"></div>
   <button class="big" id="goSetup">作戦開始</button>
-  <div class="note">10×10の海に5隻ずつ隠して撃ち合います。<br>先に相手の艦隊を全部沈めたほうが勝ち。</div>
+  <button class="linkbtn" id="rulesBtn">ルール説明</button>
 </section>
 
 <section id="setup" class="screen">
@@ -165,8 +198,9 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
     <button id="muteBtn">音 ON</button>
   </div>
   <div id="msg"></div>
-  <div class="label">敵の海域 — タップで砲撃</div>
   <div class="board big" id="enemyBoard"></div>
+  <div class="acts" id="acts"></div>
+  <div class="actrow" id="actRow"><div id="actHint"></div><button id="oriBtn">向き：横</button></div>
   <div id="yourTurn"></div>
   <div class="bottom">
     <div>
@@ -178,7 +212,7 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
       <div class="ttl" style="margin-top:4px">自艦隊</div><div id="myFleet"></div>
     </div>
   </div>
-  <button id="quitBtn" style="padding:6px 14px;font-size:13px;margin-top:4px">降参してタイトルへ</button>
+  <button id="quitBtn" style="padding:6px 14px;font-size:13px;margin-top:2px">降参してタイトルへ</button>
 </section>
 
 <div class="overlay" id="result">
@@ -192,10 +226,31 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
   </div>
 </div>
 
+<div class="overlay" id="rulesBox">
+  <div class="card">
+    <h2>ルール説明</h2>
+    <div class="rules">
+      <h3>基本（本家ルール）</h3>
+      <p>10×10の海に5隻ずつ隠して置き、交代で1マスずつ砲撃します。先に相手の艦隊を全部沈めたほうが勝ち。</p>
+      <h3>作戦ルール</h3>
+      <p>自分の番に、<b>砲撃</b>か<b>特殊能力</b>のどちらか1つを選びます。能力を使うと、その艦は数ターン休み（使えない）になります。<b>沈められた艦の能力は使えません。</b></p>
+      <div class="ab"><b>偵察（空母）</b> 3×3の範囲に、まだ当たっていない敵艦のマスがいくつあるか数でわかる。<span>休み4ターン</span></div>
+      <div class="ab"><b>一斉（戦艦）</b> 縦か横に並んだ3マスを同時に砲撃。<span>休み4ターン</span></div>
+      <div class="ab"><b>探知（巡洋艦）</b> 1行（横）か1列（縦）まるごと、まだ当たっていない敵艦のマス数がわかる。<span>休み3ターン</span></div>
+      <div class="ab"><b>魚雷（潜水艦）</b> 選んだ行か列に、近い端から魚雷を発射。最初にぶつかった艦に命中し、通ったマスは「何もない」とわかる。<span>休み5ターン</span></div>
+      <div class="ab"><b>ソナー（駆逐艦）</b> そのマスを砲撃し、さらに周り8マスに敵艦がいるか（有／無）がわかる。<span>休み2ターン</span></div>
+      <h3>見方</h3>
+      <p>調べた範囲は水色の点線で表示され、右上の数字は「まだ当たっていない艦のマス数」です。命中させると数字が減ります。敵が調べた範囲は、自軍の海にオレンジで表示されます。</p>
+      <p>能力は1回目のタップで範囲が黄色く表示され、<b>同じマスをもう一度タップ</b>すると実行します。</p>
+    </div>
+    <button class="on" id="rulesClose">閉じる</button>
+  </div>
+</div>
+
 </div>
 <script>
 "use strict";
-const VERSION = "v1.1";
+const VERSION = "v1.2";
 const N = 10;
 const COLS = "ABCDEFGHIJ";
 const SHIPS = [
@@ -205,24 +260,43 @@ const SHIPS = [
   {id:"ss", name:"潜水艦", len:3},
   {id:"dd", name:"駆逐艦", len:2},
 ];
+const ABIL = {
+  cv:{name:"航空偵察",   short:"偵察",   cd:4, ori:false},
+  bb:{name:"一斉砲撃",   short:"一斉",   cd:4, ori:true},
+  ca:{name:"レーダー探知", short:"探知", cd:3, ori:true},
+  ss:{name:"魚雷",       short:"魚雷",   cd:5, ori:true},
+  dd:{name:"ソナー",     short:"ソナー", cd:2, ori:false},
+};
+const HINT = {
+  fire:"敵の海をタップして砲撃",
+  cv:"3×3の中心をタップ → もう一度タップで偵察",
+  bb:"3マス同時砲撃。中心をタップ → もう一度タップで発射",
+  ca:"横＝その行、縦＝その列を探知。タップ → もう一度タップ",
+  ss:"横＝行、縦＝列に近い端から発射。タップ → もう一度タップ",
+  dd:"砲撃＋周り8マスを探る。タップ → もう一度タップ",
+};
 const LV = {easy:"かんたん", normal:"ふつう", hard:"つよい"};
+const MODE = {op:"作戦", classic:"本家"};
 const $ = id => document.getElementById(id);
 const rnd = n => Math.floor(Math.random() * n);
 const pick = a => a[rnd(a.length)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const inB = (r, c) => r >= 0 && r < N && c >= 0 && c < N;
+const grid0 = v => Array.from({length:N}, () => Array(N).fill(v));
 const cellsOf = (r, c, len, v) => Array.from({length:len}, (_, i) => v ? [r + i, c] : [r, c + i]);
 const coord = (r, c) => COLS[c] + "-" + (r + 1);
 
 /* ---------- storage ---------- */
 function loadStats(){ try { return JSON.parse(localStorage.getItem("radarStats")) || {}; } catch(e){ return {}; } }
 function saveStats(s){ try { localStorage.setItem("radarStats", JSON.stringify(s)); } catch(e){} }
+const statKey = () => mode === "classic" ? level : "op-" + level;
 
 /* ---------- fleet ---------- */
 class Fleet {
   constructor(){
     this.ships = SHIPS.map(s => ({...s, r:-1, c:-1, v:false, placed:false, hits:0}));
-    this.grid = Array.from({length:N}, () => Array(N).fill(-1));
-    this.shots = Array.from({length:N}, () => Array(N).fill(false));
+    this.grid = grid0(-1);
+    this.shots = grid0(false);
   }
   canPlace(i, r, c, v){
     for (const [y, x] of cellsOf(r, c, this.ships[i].len, v)){
@@ -245,11 +319,11 @@ class Fleet {
     return true;
   }
   randomize(){
-    this.grid = Array.from({length:N}, () => Array(N).fill(-1));
+    this.grid = grid0(-1);
     this.ships.forEach(s => s.placed = false);
     this.ships.forEach((s, i) => {
       let ok = false;
-      while (!ok){ const v = Math.random() < .5; ok = this.place(i, rnd(N), rnd(N), v); }
+      while (!ok){ ok = this.place(i, rnd(N), rnd(N), Math.random() < .5); }
     });
   }
   allPlaced(){ return this.ships.every(s => s.placed); }
@@ -262,14 +336,96 @@ class Fleet {
     return {hit:true, ship:s, sunk:s.hits >= s.len};
   }
   sunk(s){ return s.hits >= s.len; }
+  ship(id){ return this.ships.find(s => s.id === id); }
   allSunk(){ return this.ships.every(s => this.sunk(s)); }
   shipCells(s){ return cellsOf(s.r, s.c, s.len, s.v); }
+  isLive(y, x){ return this.grid[y][x] !== -1 && !this.shots[y][x]; }
+}
+
+/* ---------- ability areas ---------- */
+function reconArea(r, c){
+  r = clamp(r, 1, N - 2); c = clamp(c, 1, N - 2);
+  const cells = [];
+  for (let y = r - 1; y <= r + 1; y++) for (let x = c - 1; x <= c + 1; x++) cells.push([y, x]);
+  return {cells, box:{r0:r - 1, c0:c - 1, h:3, w:3}, cr:r, cc:c};
+}
+function lineArea(r, c, v){
+  const cells = [];
+  for (let i = 0; i < N; i++) cells.push(v ? [i, c] : [r, i]);
+  return {cells, box: v ? {r0:0, c0:c, h:N, w:1} : {r0:r, c0:0, h:1, w:N}};
+}
+function salvoCells(r, c, v){
+  if (v){ r = clamp(r, 1, N - 2); return [[r - 1, c], [r, c], [r + 1, c]]; }
+  c = clamp(c, 1, N - 2); return [[r, c - 1], [r, c], [r, c + 1]];
+}
+function torpedoPath(r, c, v){
+  const p = [];
+  if (!v){ if (c < 5) for (let x = 0; x < N; x++) p.push([r, x]); else for (let x = N - 1; x >= 0; x--) p.push([r, x]); }
+  else   { if (r < 5) for (let y = 0; y < N; y++) p.push([y, c]); else for (let y = N - 1; y >= 0; y--) p.push([y, c]); }
+  return p;
+}
+function sonarArea(r, c){
+  const cells = []; let r0 = r, c0 = c, r1 = r, c1 = c;
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++){
+    const y = r + dy, x = c + dx;
+    if (!inB(y, x)) continue;
+    r0 = Math.min(r0, y); c0 = Math.min(c0, x); r1 = Math.max(r1, y); c1 = Math.max(c1, x);
+    if (dy || dx) cells.push([y, x]);
+  }
+  return {cells, box:{r0, c0, h:r1 - r0 + 1, w:c1 - c0 + 1}};
+}
+function previewCells(act, r, c, v){
+  if (act === "cv") return reconArea(r, c).cells;
+  if (act === "bb") return salvoCells(r, c, v);
+  if (act === "ca") return lineArea(r, c, v).cells;
+  if (act === "ss") return torpedoPath(r, c, v);
+  if (act === "dd") return [...sonarArea(r, c).cells, [r, c]];
+  return [];
+}
+
+/* execute an action against defender fleet `def` */
+function exec(def, act, r, c, v){
+  const ev = {act, r, c, v, shots:[], empties:[], scan:null, touched:[]};
+  const shoot = (y, x) => { const res = def.fire(y, x); ev.shots.push({r:y, c:x, ...res}); ev.touched.push([y, x]); };
+  if (act === "fire") shoot(r, c);
+  else if (act === "bb"){
+    for (const [y, x] of salvoCells(r, c, v)){ if (!def.shots[y][x]) shoot(y, x); else ev.touched.push([y, x]); }
+  } else if (act === "cv" || act === "ca"){
+    const a = act === "cv" ? reconArea(r, c) : lineArea(r, c, v);
+    const unshot = a.cells.filter(([y, x]) => !def.shots[y][x]);
+    const k = unshot.filter(([y, x]) => def.grid[y][x] !== -1).length;
+    ev.scan = {type:act, cells:a.cells, unshot, k, box:a.box, line: act === "ca" ? (v ? COLS[c] + "列" : (r + 1) + "行目") : ""};
+    if (act === "cv"){ ev.r = a.cr; ev.c = a.cc; }
+    ev.touched.push(...a.cells);
+  } else if (act === "ss"){
+    const path = torpedoPath(r, c, v);
+    ev.from = !v ? (c < 5 ? "左" : "右") : (r < 5 ? "上" : "下");
+    for (const [y, x] of path){
+      ev.touched.push([y, x]);
+      if (def.shots[y][x]) continue;
+      if (def.grid[y][x] !== -1){ const res = def.fire(y, x); ev.shots.push({r:y, c:x, ...res}); break; }
+      def.shots[y][x] = true; ev.empties.push([y, x]);
+    }
+  } else if (act === "dd"){
+    shoot(r, c);
+    const a = sonarArea(r, c);
+    const unshot = a.cells.filter(([y, x]) => !def.shots[y][x]);
+    const yes = unshot.some(([y, x]) => def.grid[y][x] !== -1);
+    ev.scan = {type:"dd", cells:a.cells, unshot, k: yes ? 1 : 0, min: yes, box:a.box};
+    ev.touched.push(...a.cells);
+  }
+  return ev;
+}
+// current number shown for a scan (ship cells still not hit inside it)
+function scanNow(def, s){
+  const newHits = s.unshot.filter(([y, x]) => def.shots[y][x] && def.grid[y][x] !== -1).length;
+  return s.k - newHits;
 }
 
 /* ---------- CPU ---------- */
-// what the CPU knows about the player's sea: 0 unknown, 1 miss, 2 hit (ship not sunk), 3 sunk
+// what the CPU knows about the player's sea: 0 unknown, 1 empty, 2 hit (ship not sunk), 3 sunk
 function knowledge(f){
-  const k = Array.from({length:N}, () => Array(N).fill(0));
+  const k = grid0(0);
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++){
     if (!f.shots[y][x]) continue;
     const i = f.grid[y][x];
@@ -279,81 +435,189 @@ function knowledge(f){
 }
 const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
 
-function cpuPick(f, level){
-  const k = knowledge(f);
+function analyze(def, scans, level){
+  const k = knowledge(def);
+  const excl = grid0(false), fac = grid0(1), scanned = grid0(false);
   const unknown = [], hits = [];
+  let known = 0;
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++){
     if (k[y][x] === 0) unknown.push([y, x]);
     if (k[y][x] === 2) hits.push([y, x]);
+    if (k[y][x] >= 2) known++;
   }
-  const remain = f.ships.filter(s => !f.sunk(s)).map(s => s.len);
-
-  if (level === "easy"){
-    if (hits.length && Math.random() < .55){
-      const opts = [];
-      hits.forEach(([y, x]) => DIRS.forEach(([dy, dx]) => { if (inB(y+dy, x+dx) && k[y+dy][x+dx] === 0) opts.push([y+dy, x+dx]); }));
-      if (opts.length) return pick(opts);
-    }
-    return pick(unknown);
-  }
-
-  if (level === "normal"){
-    if (hits.length){ const t = targetPick(k, hits); if (t) return t; }
-    const m = Math.min(...remain);
-    const par = unknown.filter(([y, x]) => (y + x) % m === 0);
-    return pick(par.length ? par : unknown);
-  }
-
-  // hard: probability density
-  const score = Array.from({length:N}, () => Array(N).fill(0));
-  let any = false;
-  for (const len of remain){
-    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) for (const v of [false, true]){
-      const cs = cellsOf(r, c, len, v);
-      let ok = true, cover = 0;
-      for (const [y, x] of cs){
-        if (!inB(y, x) || k[y][x] === 1 || k[y][x] === 3){ ok = false; break; }
-        if (k[y][x] === 2) cover++;
+  const total = def.ships.reduce((a, s) => a + s.len, 0);
+  const p = Math.max(.01, (total - known) / Math.max(1, unknown.length));
+  if (level !== "easy"){
+    for (const s of scans){
+      s.cells.forEach(([y, x]) => scanned[y][x] = true);
+      const newHits = s.unshot.filter(([y, x]) => k[y][x] >= 2).length;
+      const unk = s.unshot.filter(([y, x]) => k[y][x] === 0 && !excl[y][x]);
+      if (s.min){ // sonar "yes"
+        if (newHits > 0 || !unk.length) continue;
+        const f = clamp((1 / unk.length) / p, 1, 4);
+        unk.forEach(([y, x]) => fac[y][x] *= f);
+        continue;
       }
-      if (!ok) continue;
-      if (hits.length && cover === 0) continue;
-      const w = hits.length ? Math.pow(30, cover) : 1;
-      for (const [y, x] of cs) if (k[y][x] === 0){ score[y][x] += w; any = true; }
+      const kNow = s.k - newHits;
+      if (kNow <= 0) unk.forEach(([y, x]) => excl[y][x] = true);
+      else if (unk.length){
+        const f = clamp((kNow / unk.length) / p, .25, 6);
+        unk.forEach(([y, x]) => fac[y][x] *= f);
+      }
     }
   }
-  if (!any){
-    if (hits.length){ const t = targetPick(k, hits); if (t) return t; }
-    return pick(unknown);
+  let U = unknown.filter(([y, x]) => !excl[y][x]);
+  if (!U.length) U = unknown;
+  const ok = (y, x) => inB(y, x) && k[y][x] === 0 && !excl[y][x];
+  const remain = def.ships.filter(s => !def.sunk(s)).map(s => s.len);
+  const S = grid0(0);
+
+  if (level === "hard"){
+    let any = false;
+    for (const len of remain){
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) for (const v of [false, true]){
+        const cs = cellsOf(r, c, len, v);
+        let good = true, cover = 0;
+        for (const [y, x] of cs){
+          if (!inB(y, x) || k[y][x] === 1 || k[y][x] === 3 || (k[y][x] === 0 && excl[y][x])){ good = false; break; }
+          if (k[y][x] === 2) cover++;
+        }
+        if (!good || (hits.length && cover === 0)) continue;
+        const w = hits.length ? Math.pow(30, cover) : 1;
+        for (const [y, x] of cs) if (k[y][x] === 0){ S[y][x] += w; any = true; }
+      }
+    }
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) S[y][x] *= fac[y][x];
+    if (!hits.length) for (const [y, x] of U) if ((y + x) % 2 === 0) S[y][x] *= 1.08;
+    if (!any) U.forEach(([y, x]) => S[y][x] = fac[y][x]);
+  } else if (level === "normal"){
+    if (hits.length){
+      const t = targetCands(k, hits, ok);
+      t.adj.forEach(([y, x]) => S[y][x] = 1);
+      t.ends.forEach(([y, x]) => S[y][x] = 3);
+    }
+    if (!hits.length || !U.some(([y, x]) => S[y][x] > 0)){
+      const m = Math.min(...remain);
+      U.forEach(([y, x]) => S[y][x] = fac[y][x] * ((y + x) % m === 0 ? 1 : .6));
+    }
+  } else {
+    U.forEach(([y, x]) => S[y][x] = 1);
   }
-  let best = -1, cand = [];
-  for (const [y, x] of unknown){
-    // slight checkerboard preference while hunting
-    const s = score[y][x] * (hits.length ? 1 : ((y + x) % 2 === 0 ? 1.08 : 1));
-    if (s > best + 1e-9){ best = s; cand = [[y, x]]; }
-    else if (Math.abs(s - best) < 1e-9) cand.push([y, x]);
-  }
-  return pick(cand);
+
+  const best = (cands, val) => {
+    let b = -Infinity, out = [];
+    for (const cd of cands){
+      const s = val(cd);
+      if (s > b + 1e-9){ b = s; out = [cd]; } else if (Math.abs(s - b) < 1e-9) out.push(cd);
+    }
+    return pick(out);
+  };
+  const sumS = cells => cells.reduce((a, [y, x]) => a + (k[y][x] === 0 ? S[y][x] : 0), 0);
+  const infoS = cells => cells.reduce((a, [y, x]) => a + (k[y][x] === 0 && !excl[y][x] ? (scanned[y][x] ? .3 : 1) * (S[y][x] > 0 ? 1 : 0) : 0), 0);
+
+  return {
+    hits, U, S,
+    target(){
+      if (level === "easy"){
+        if (hits.length && Math.random() < .55){
+          const t = targetCands(k, hits, (y, x) => inB(y, x) && k[y][x] === 0);
+          const o = [...t.adj, ...t.ends];
+          if (o.length) return pick(o);
+        }
+        return pick(unknown);
+      }
+      return best(U, ([y, x]) => S[y][x]);
+    },
+    bestRecon(){
+      const cs = [];
+      for (let r = 1; r < N - 1; r++) for (let c = 1; c < N - 1; c++) cs.push([r, c]);
+      const [r, c] = best(cs, ([r, c]) => infoS(reconArea(r, c).cells) + (level === "hard" ? sumS(reconArea(r, c).cells) * .001 : 0));
+      return {r, c, v:false};
+    },
+    bestLine(){
+      const cs = [];
+      for (let i = 0; i < N; i++){ cs.push([i, 0, false]); cs.push([0, i, true]); }
+      const [r, c, v] = best(cs, ([r, c, v]) => infoS(lineArea(r, c, v).cells));
+      return {r, c, v};
+    },
+    bestSalvo(){
+      const cs = [];
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++){ cs.push([r, c, false]); cs.push([r, c, true]); }
+      const [r, c, v] = best(cs, ([r, c, v]) => sumS(salvoCells(r, c, v)));
+      return {r, c, v};
+    },
+    bestSalvoNear([ty, tx]){
+      const cs = [];
+      for (const v of [false, true]) for (const o of [-1, 0, 1]) cs.push(v ? [ty + o, tx, v] : [ty, tx + o, v]);
+      const valid = cs.filter(([r, c]) => inB(r, c));
+      const [r, c, v] = best(valid, ([r, c, v]) => {
+        const sc = salvoCells(r, c, v);
+        return sc.some(([y, x]) => y === ty && x === tx) ? sumS(sc) : -1;
+      });
+      return {r, c, v};
+    },
+    bestTorpedo(){
+      const cs = [];
+      for (let i = 0; i < N; i++){ cs.push([i, 0, false]); cs.push([i, N - 1, false]); cs.push([0, i, true]); cs.push([N - 1, i, true]); }
+      const [r, c, v] = best(cs, ([r, c, v]) => {
+        let s = 0, w = 1;
+        for (const [y, x] of torpedoPath(r, c, v)){ if (k[y][x] === 0){ s += w * (S[y][x] > 0 ? S[y][x] : 0); w *= .85; } }
+        return s;
+      });
+      return {r, c, v};
+    },
+  };
 }
 
-function targetPick(k, hits){
-  // if hits form a line, extend its ends
-  const lines = [];
+function targetCands(k, hits, ok){
+  const ends = [], adj = [];
   for (const [y, x] of hits){
     for (const [dy, dx] of [[0,1],[1,0]]){
-      if (inB(y+dy, x+dx) && k[y+dy][x+dx] === 2){
+      const nb = (yy, xx) => inB(yy, xx) && k[yy][xx] === 2;
+      if (nb(y + dy, x + dx) || nb(y - dy, x - dx)){
         let a = [y, x], b = [y, x];
-        while (inB(a[0]-dy, a[1]-dx) && k[a[0]-dy][a[1]-dx] === 2) a = [a[0]-dy, a[1]-dx];
-        while (inB(b[0]+dy, b[1]+dx) && k[b[0]+dy][b[1]+dx] === 2) b = [b[0]+dy, b[1]+dx];
-        const ends = [[a[0]-dy, a[1]-dx], [b[0]+dy, b[1]+dx]].filter(([p, q]) => inB(p, q) && k[p][q] === 0);
-        lines.push(...ends);
+        while (nb(a[0] - dy, a[1] - dx)) a = [a[0] - dy, a[1] - dx];
+        while (nb(b[0] + dy, b[1] + dx)) b = [b[0] + dy, b[1] + dx];
+        for (const [p, q] of [[a[0] - dy, a[1] - dx], [b[0] + dy, b[1] + dx]]) if (ok(p, q)) ends.push([p, q]);
       }
     }
+    for (const [dy, dx] of DIRS) if (ok(y + dy, x + dx)) adj.push([y + dy, x + dx]);
   }
-  if (lines.length) return pick(lines);
-  const opts = [];
-  hits.forEach(([y, x]) => DIRS.forEach(([dy, dx]) => { if (inB(y+dy, x+dx) && k[y+dy][x+dx] === 0) opts.push([y+dy, x+dx]); }));
-  return opts.length ? pick(opts) : null;
+  return {ends, adj};
 }
+
+function abilityReady(own, cd, id){ return !own.sunk(own.ship(id)) && cd[id] === 0; }
+
+function cpuDecide(def, own, level, ai, mode){
+  const A = analyze(def, ai.scans, level);
+  const t = A.target();
+  const fire = {act:"fire", r:t[0], c:t[1], v:false};
+  if (mode !== "op") return fire;
+  const av = id => abilityReady(own, ai.cd, id);
+  if (level === "easy"){
+    const list = Object.keys(ABIL).filter(av);
+    if (list.length && Math.random() < .3){
+      const a = pick(list);
+      if (a === "dd") return {act:"dd", r:t[0], c:t[1], v:false};
+      return {act:a, r:rnd(N), c:rnd(N), v:Math.random() < .5};
+    }
+    return fire;
+  }
+  const use = id => av(id) && (level === "hard" || Math.random() < .7);
+  if (A.hits.length){
+    if (use("bb")) return {act:"bb", ...A.bestSalvoNear(t)};
+    if (av("dd")) return {...fire, act:"dd"};
+    return fire;
+  }
+  if (use("ss")) return {act:"ss", ...A.bestTorpedo()};
+  if (use("cv")) return {act:"cv", ...A.bestRecon()};
+  if (use("ca")) return {act:"ca", ...A.bestLine()};
+  if (use("bb")) return {act:"bb", ...A.bestSalvo()};
+  if (av("dd")) return {...fire, act:"dd"};
+  return fire;
+}
+// simple wrapper (classic rules)
+function cpuPick(f, level){ const d = cpuDecide(f, null, level, {scans:[], cd:{}}, "classic"); return [d.r, d.c]; }
 
 /* ---------- sound ---------- */
 let ac = null, muted = false;
@@ -386,10 +650,12 @@ function noise(dur, ftype, freq, gain, delay = 0){
 const sfx = {
   tap:  () => tone(1400, .05, "square", .03),
   fire: () => { tone(700, .18, "square", .04, 120); noise(.15, "bandpass", 1200, .2); },
-  miss: () => { noise(.5, "highpass", 1800, .25, .15); tone(300, .25, "sine", .04, 150, .15); },
-  hit:  () => { noise(.7, "lowpass", 900, .9, .12); tone(110, .5, "sawtooth", .12, 35, .12); },
-  sunk: () => { noise(1.4, "lowpass", 500, 1.2, .12); tone(90, 1.2, "sawtooth", .15, 25, .12); tone(60, 1.2, "sine", .3, 20, .3); },
-  ping: () => tone(1250, .9, "sine", .07),
+  miss: (d = .15) => { noise(.5, "highpass", 1800, .25, d); tone(300, .25, "sine", .04, 150, d); },
+  hit:  (d = .12) => { noise(.7, "lowpass", 900, .9, d); tone(110, .5, "sawtooth", .12, 35, d); },
+  sunk: (d = .12) => { noise(1.4, "lowpass", 500, 1.2, d); tone(90, 1.2, "sawtooth", .15, 25, d); tone(60, 1.2, "sine", .3, 20, d + .2); },
+  ping: () => { tone(1250, .9, "sine", .07); tone(1250, .6, "sine", .03, null, .35); },
+  scan: () => { tone(400, .5, "sine", .05, 1600); tone(1600, .4, "sine", .04, null, .5); },
+  torp: () => { noise(.9, "bandpass", 400, .35); tone(180, .9, "triangle", .05, 90); },
   win:  () => [523, 659, 784, 1046].forEach((f, i) => tone(f, .35, "triangle", .1, null, i * .14)),
   lose: () => [392, 330, 262, 196].forEach((f, i) => tone(f, .45, "triangle", .1, null, i * .2)),
 };
@@ -412,8 +678,10 @@ function makeBoard(el, onTap){
       g.appendChild(d); cells[r].push(d);
     }
   }
+  const layer = document.createElement("div"); layer.style.cssText = "position:absolute;inset:0;pointer-events:none";
+  g.appendChild(layer);
   el.append(corner, cl, rl, g);
-  return {grid:g, cells};
+  return {grid:g, cells, layer};
 }
 function shipClasses(f, r, c){
   const i = f.grid[r][c]; if (i === -1) return "";
@@ -425,12 +693,29 @@ function pipsHTML(len, hits = 0){
   for (let i = 0; i < len; i++) h += i < hits ? '<i class="x"></i>' : "<i></i>";
   return h + "</span>";
 }
+function renderIntel(ui, scans, def, foe){
+  ui.layer.innerHTML = "";
+  scans.forEach((s, i) => {
+    const d = document.createElement("div");
+    const b = s.box;
+    d.style.left = b.c0 * 10 + "%"; d.style.top = b.r0 * 10 + "%";
+    d.style.width = b.w * 10 + "%"; d.style.height = b.h * 10 + "%";
+    let label, zero;
+    if (s.type === "dd"){ label = s.k ? "有" : "無"; zero = !s.k; }
+    else { const n = scanNow(def, s); label = n; zero = n <= 0; }
+    d.className = "intel" + (foe ? " foe" : "") + (zero ? " zero" : "") + (i === scans.length - 1 && s.fresh ? " new" : "");
+    d.innerHTML = `<b>${label}</b>`;
+    ui.layer.appendChild(d);
+  });
+}
 
 /* ---------- state ---------- */
-let level = "normal";
+let level = "normal", mode = "op";
 let player, enemy, setupUI, enemyUI, myUI;
 let selShip = 0, vert = false, busy = false, over = false;
-let pShots = 0, pHits = 0, cShots = 0, cHits = 0, turn = 1, lastCpu = null;
+let pShots = 0, pHits = 0, cShots = 0, cHits = 0, turn = 1, lastCpu = [];
+let act = "fire", aVert = false, pending = null;
+let plCd, plScans, ai;
 
 function show(id){
   document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
@@ -440,8 +725,8 @@ function show(id){
 /* ---------- title ---------- */
 function renderTitle(){
   const st = loadStats();
-  const parts = Object.keys(LV).map(k => { const s = st[k] || {w:0, l:0}; return `${LV[k]} ${s.w}勝${s.l}敗`; });
-  $("stats").textContent = "戦績：" + parts.join(" ／ ");
+  const parts = Object.keys(LV).map(k => { const s = st[mode === "classic" ? k : "op-" + k] || {w:0, l:0}; return `${LV[k]} ${s.w}勝${s.l}敗`; });
+  $("stats").textContent = `戦績（${MODE[mode]}）：` + parts.join(" ／ ");
   const br = $("bigradar"); br.querySelectorAll(".blip").forEach(b => b.remove());
   for (let i = 0; i < 4; i++){
     const b = document.createElement("div"); b.className = "blip";
@@ -451,11 +736,18 @@ function renderTitle(){
     br.appendChild(b);
   }
 }
-document.querySelectorAll(".levels button").forEach(b => b.addEventListener("click", () => {
+document.querySelectorAll("#levels button").forEach(b => b.addEventListener("click", () => {
   level = b.dataset.lv; sfx.tap();
-  document.querySelectorAll(".levels button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll("#levels button").forEach(x => x.classList.toggle("on", x === b));
+}));
+document.querySelectorAll("#modes button").forEach(b => b.addEventListener("click", () => {
+  mode = b.dataset.mode; sfx.tap();
+  document.querySelectorAll("#modes button").forEach(x => x.classList.toggle("on", x === b));
+  renderTitle();
 }));
 $("goSetup").addEventListener("click", () => { sfx.ping(); startSetup(); });
+$("rulesBtn").addEventListener("click", () => { sfx.tap(); $("rulesBox").classList.add("show"); });
+$("rulesClose").addEventListener("click", () => $("rulesBox").classList.remove("show"));
 
 /* ---------- setup ---------- */
 function startSetup(){
@@ -466,7 +758,7 @@ function startSetup(){
 function setupTap(r, c){
   const at = player.grid[r][c];
   if (at !== -1 && at !== selShip){ selShip = at; vert = player.ships[at].v; sfx.tap(); renderSetup(); return; }
-  if (at === selShip){ // rotate in place
+  if (at === selShip){
     const s = player.ships[selShip];
     if (player.place(selShip, s.r, s.c, !s.v)){ vert = s.v; sfx.tap(); }
     else flashBad(player.shipCells(s));
@@ -514,80 +806,182 @@ $("rotBtn").addEventListener("click", () => {
 });
 $("autoBtn").addEventListener("click", () => { player.randomize(); vert = player.ships[selShip].v; sfx.ping(); renderSetup(); });
 $("backBtn").addEventListener("click", () => { renderTitle(); show("title"); });
-$("startBtn").addEventListener("click", startBattle);
+$("startBtn").addEventListener("click", () => startBattle());
 
 /* ---------- battle ---------- */
+const newCd = () => ({cv:0, bb:0, ca:0, ss:0, dd:0});
 function startBattle(){
   enemy = new Fleet(); enemy.randomize();
   $("quitBtn").textContent = "降参してタイトルへ"; $("quitBtn").dataset.confirm = "";
-  pShots = pHits = cShots = cHits = 0; turn = 1; lastCpu = null; busy = false; over = false;
-  enemyUI = makeBoard($("enemyBoard"), playerFire);
+  pShots = pHits = cShots = cHits = 0; turn = 1; lastCpu = []; busy = false; over = false;
+  act = "fire"; aVert = false; pending = null;
+  plCd = newCd(); plScans = []; ai = {cd:newCd(), scans:[]};
+  enemyUI = makeBoard($("enemyBoard"), enemyTap);
   const sw = document.createElement("div"); sw.className = "sweep"; enemyUI.grid.appendChild(sw);
   myUI = makeBoard($("myBoard"), null);
-  $("lvLabel").textContent = "CPU：" + LV[level];
+  $("battle").classList.toggle("op", mode === "op");
+  $("acts").style.display = $("actRow").style.display = mode === "op" ? "" : "none";
+  buildActs();
+  $("lvLabel").textContent = `${MODE[mode]}／CPU：${LV[level]}`;
   show("battle"); sfx.ping();
   setMsg("敵艦隊を捜索せよ！", "");
   renderBattle();
 }
-function setMsg(t, cls){ const m = $("msg"); m.textContent = t; m.className = cls || ""; }
+function buildActs(){
+  const box = $("acts"); box.innerHTML = "";
+  const mk = (id, label, sub) => {
+    const b = document.createElement("button"); b.dataset.act = id;
+    b.innerHTML = `<span>${label}</span><small>${sub}</small>`;
+    b.addEventListener("click", () => selectAct(id));
+    box.appendChild(b);
+  };
+  mk("fire", "砲撃", "通常");
+  SHIPS.forEach(s => mk(s.id, ABIL[s.id].short, s.name));
+}
+function selectAct(id){
+  if (busy || over) return;
+  if (id !== "fire" && !abilityReady(player, plCd, id)) return;
+  act = act === id && id !== "fire" ? "fire" : id;
+  pending = null; sfx.tap(); renderBattle();
+}
+function enemyTap(r, c){
+  if (busy || over) return;
+  if (act === "fire"){
+    if (enemy.shots[r][c]) return;
+    playerAct("fire", r, c, false); return;
+  }
+  if (act === "dd" && enemy.shots[r][c]){ setMsg("ソナーはまだ撃っていないマスを選んでください", "cyan"); return; }
+  if (pending && pending.r === r && pending.c === c){ playerAct(act, r, c, aVert); return; }
+  pending = {r, c}; sfx.tap(); renderBattle();
+}
+$("oriBtn").addEventListener("click", () => { aVert = !aVert; sfx.tap(); renderBattle(); });
+
+function setMsg(t, cls){ const m = $("msg"); m.innerHTML = t; m.className = cls || ""; }
+
 function renderBattle(reveal = false){
+  const pv = new Set();
+  if (pending && act !== "fire") previewCells(act, pending.r, pending.c, aVert).forEach(([y, x]) => pv.add(y * N + x));
+  const lastSet = new Set(lastCpu.map(([y, x]) => y * N + x));
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++){
-    // enemy sea
     let cl = "cell";
     const ei = enemy.grid[r][c];
     if (enemy.shots[r][c]){
       if (ei === -1) cl += " miss";
       else { cl += " hit"; if (enemy.sunk(enemy.ships[ei])) cl += " sunk"; }
     } else if (reveal && ei !== -1) cl += " reveal";
+    if (pv.has(r * N + c)) cl += " pv";
     enemyUI.cells[r][c].className = cl;
-    // my sea
     let ml = "cell " + shipClasses(player, r, c);
     if (player.shots[r][c]){
       const pi = player.grid[r][c];
       ml += pi === -1 ? " miss" : " hit" + (player.sunk(player.ships[pi]) ? " sunk" : "");
     }
-    if (lastCpu && lastCpu[0] === r && lastCpu[1] === c) ml += " last";
+    if (lastSet.has(r * N + c)) ml += " last";
     myUI.cells[r][c].className = ml;
   }
+  renderIntel(enemyUI, plScans, enemy, false);
+  renderIntel(myUI, ai.scans, player, true);
   $("turnLabel").textContent = `ターン ${turn}`;
-  const fl = (f, el, showHits) => {
-    el.innerHTML = f.ships.map(s =>
-      `<div class="fs ${f.sunk(s) ? "dead" : ""}"><span>${s.name}</span>${pipsHTML(s.len, showHits ? s.hits : (f.sunk(s) ? s.len : 0))}</div>`).join("");
+  const fl = (f, el, showHits, cd) => {
+    el.innerHTML = f.ships.map(s => {
+      const c = cd && mode === "op" && !f.sunk(s) && cd[s.id] > 0 ? `<span class="cd">休${cd[s.id]}</span>` : "";
+      return `<div class="fs ${f.sunk(s) ? "dead" : ""}"><span>${s.name}</span>${c}${pipsHTML(s.len, showHits ? s.hits : (f.sunk(s) ? s.len : 0))}</div>`;
+    }).join("");
   };
-  fl(enemy, $("enemyFleet"), false);
-  fl(player, $("myFleet"), true);
+  fl(enemy, $("enemyFleet"), false, ai.cd);
+  fl(player, $("myFleet"), true, plCd);
+  if (mode === "op"){
+    if (act !== "fire" && !abilityReady(player, plCd, act)){ act = "fire"; pending = null; }
+    document.querySelectorAll("#acts button").forEach(b => {
+      const id = b.dataset.act;
+      b.classList.toggle("on", id === act);
+      if (id === "fire"){ b.disabled = busy || over; return; }
+      const sunkShip = player.sunk(player.ship(id));
+      b.disabled = busy || over || sunkShip || plCd[id] > 0;
+      b.querySelector("small").textContent = sunkShip ? "沈没" : plCd[id] > 0 ? `あと${plCd[id]}` : player.ship(id).name;
+    });
+    const o = ABIL[act] && ABIL[act].ori;
+    $("oriBtn").style.visibility = o ? "visible" : "hidden";
+    $("oriBtn").textContent = "向き：" + (aVert ? "縦" : "横");
+    $("actHint").innerHTML = pending && act !== "fire"
+      ? `<b style="color:var(--warn)">${ABIL[act].name}：もう一度 ${coord(pending.r, pending.c)} をタップで実行</b>`
+      : HINT[act];
+  }
   $("yourTurn").textContent = (!busy && !over) ? "▼ あなたの番です" : "";
 }
-function playerFire(r, c){
-  if (busy || over || enemy.shots[r][c]) return;
-  busy = true; pShots++;
-  sfx.fire();
-  const res = enemy.fire(r, c);
-  if (res.hit){
-    pHits++;
-    if (res.sunk){ sfx.sunk(); setMsg(`${coord(r, c)} 撃沈！ 敵の${res.ship.name}を沈めた！`, "yellow"); shake(); }
-    else { sfx.hit(); setMsg(`${coord(r, c)} 命中！`, "yellow"); }
-  } else { sfx.miss(); setMsg(`${coord(r, c)} はずれ`, ""); }
+
+/* describe an action result */
+function describe(ev, mine){
+  const foe = mine ? "敵の" : "自軍の";
+  const pre = mine ? "" : "敵の";
+  const hits = ev.shots.filter(s => s.hit), sunk = ev.shots.filter(s => s.sunk);
+  const sunkTxt = sunk.map(s => `${foe}${s.ship.name}${mine ? "を沈めた！" : "が沈没！"}`).join(" ");
+  const shotTxt = () => {
+    if (sunk.length) return `撃沈！ ${sunkTxt}`;
+    if (hits.length) return mine ? (hits.length > 1 ? `${hits.length}発命中！` : "命中！") : `被弾！ ${hits.map(h => h.ship.name).join("・")}に命中`;
+    return "はずれ";
+  };
+  let t;
+  switch (ev.act){
+    case "fire": t = `${pre}砲撃 ${coord(ev.r, ev.c)}：${shotTxt()}`; break;
+    case "bb": {
+      const cs = salvoCells(ev.r, ev.c, ev.v);
+      t = `${pre}一斉砲撃 ${coord(...cs[0])}〜${coord(...cs[2])}：${shotTxt()}`; break;
+    }
+    case "cv": t = `${pre}航空偵察 ${coord(ev.r, ev.c)}周辺：${mine ? "敵艦" : "自軍艦"} <b>${ev.scan.k}</b>マス`; break;
+    case "ca": t = `${pre}レーダー探知 ${ev.scan.line}：${mine ? "敵艦" : "自軍艦"} <b>${ev.scan.k}</b>マス`; break;
+    case "ss": {
+      const line = ev.v ? COLS[ev.c] + "列" : (ev.r + 1) + "行目";
+      const h = ev.shots[0];
+      t = `${pre}魚雷 ${line}（${ev.from}から）：` + (h ? `${coord(h.r, h.c)} ${shotTxt()}` : "艦なし");
+      break;
+    }
+    case "dd": t = `${pre}ソナー ${coord(ev.r, ev.c)}：${shotTxt()}／周り <b>${ev.scan.k ? "反応あり" : "反応なし"}</b>`; break;
+  }
+  const cls = mine ? (hits.length ? "yellow" : ev.scan ? "cyan" : "") : (hits.length ? "red" : ev.scan ? "cyan" : "");
+  return {t, cls, hit:hits.length > 0, sunk:sunk.length > 0};
+}
+function playSound(ev, d){
+  if (ev.act === "cv" || ev.act === "ca"){ sfx.scan(); return; }
+  if (ev.act === "ss") sfx.torp(); else sfx.fire();
+  const delay = ev.act === "ss" ? .7 : .12;
+  if (d.sunk) sfx.sunk(delay); else if (d.hit) sfx.hit(delay); else sfx.miss(delay);
+  if (ev.act === "dd") setTimeout(() => sfx.ping(), 500);
+}
+
+function playerAct(a, r, c, v){
+  busy = true; pending = null;
+  const ev = exec(enemy, a, r, c, v);
+  if (a !== "fire") plCd[a] = ABIL[a].cd + 1;
+  if (ev.scan){ plScans.forEach(s => s.fresh = false); ev.scan.fresh = true; plScans.push(ev.scan); }
+  pShots += ev.shots.length; pHits += ev.shots.filter(s => s.hit).length;
+  const d = describe(ev, true);
+  setMsg(d.t, d.cls); playSound(ev, d);
+  if (d.sunk) shake();
+  act = "fire";
   renderBattle();
-  if (enemy.allSunk()){ setTimeout(() => finish(true), 1200); return; }
-  setTimeout(cpuTurn, res.sunk ? 1500 : 1000);
+  if (enemy.allSunk()){ setTimeout(() => finish(true), 1300); return; }
+  setTimeout(cpuTurn, d.sunk ? 1700 : ev.scan ? 1600 : 1100);
 }
 function cpuTurn(){
   if (over) return;
-  setMsg("敵の砲撃…", "red");
+  for (const id in ai.cd) if (ai.cd[id] > 0) ai.cd[id]--;
+  setMsg("敵の行動…", "red");
   setTimeout(() => {
-    const [r, c] = cpuPick(player, level);
-    cShots++; lastCpu = [r, c];
-    const res = player.fire(r, c);
-    if (res.hit){
-      cHits++;
-      if (res.sunk){ sfx.sunk(); setMsg(`敵弾 ${coord(r, c)} 撃沈された！ 自軍の${res.ship.name}が沈没`, "red"); }
-      else { sfx.hit(); setMsg(`敵弾 ${coord(r, c)} 被弾！ ${res.ship.name}に命中`, "red"); }
-      shake(true);
-    } else { sfx.miss(); setMsg(`敵弾 ${coord(r, c)} はずれ`, ""); }
-    if (player.allSunk()){ busy = true; renderBattle(); setTimeout(() => finish(false), 1300); return; }
-    turn++; busy = false; renderBattle();
-  }, 500);
+    const dcs = cpuDecide(player, enemy, level, ai, mode);
+    const ev = exec(player, dcs.act, dcs.r, dcs.c, dcs.v);
+    if (dcs.act !== "fire") ai.cd[dcs.act] = ABIL[dcs.act].cd + 1;
+    if (ev.scan){ ai.scans.forEach(s => s.fresh = false); ev.scan.fresh = true; ai.scans.push(ev.scan); }
+    cShots += ev.shots.length; cHits += ev.shots.filter(s => s.hit).length;
+    lastCpu = ev.shots.length ? ev.shots.map(s => [s.r, s.c]) : [];
+    const d = describe(ev, false);
+    setMsg(d.t, d.cls); playSound(ev, d);
+    if (d.hit) shake(true);
+    if (player.allSunk()){ busy = true; renderBattle(); setTimeout(() => finish(false), 1400); return; }
+    turn++;
+    for (const id in plCd) if (plCd[id] > 0) plCd[id]--;
+    busy = false; renderBattle();
+  }, 600);
 }
 function shake(red){
   const b = $("battle");
@@ -595,9 +989,9 @@ function shake(red){
   b.classList.add("shake"); if (red) b.classList.add("flash");
 }
 function finish(win){
-  over = true; busy = true;
-  const st = loadStats(); st[level] = st[level] || {w:0, l:0};
-  win ? st[level].w++ : st[level].l++; saveStats(st);
+  over = true; busy = true; pending = null;
+  const st = loadStats(), key = statKey(); st[key] = st[key] || {w:0, l:0};
+  win ? st[key].w++ : st[key].l++; saveStats(st);
   renderBattle(true);
   win ? sfx.win() : sfx.lose();
   $("resTitle").textContent = win ? "勝利" : "敗北";
@@ -606,11 +1000,11 @@ function finish(win){
   const acc = pShots ? Math.round(pHits / pShots * 100) : 0;
   const cacc = cShots ? Math.round(cHits / cShots * 100) : 0;
   $("resTable").innerHTML = `
-    <tr><td>CPUの強さ</td><td>${LV[level]}</td></tr>
+    <tr><td>ルール／CPU</td><td>${MODE[mode]}／${LV[level]}</td></tr>
     <tr><td>ターン数</td><td>${turn}</td></tr>
     <tr><td>あなたの命中率</td><td>${acc}%（${pHits}/${pShots}）</td></tr>
     <tr><td>CPUの命中率</td><td>${cacc}%（${cHits}/${cShots}）</td></tr>
-    <tr><td>通算（${LV[level]}）</td><td>${st[level].w}勝${st[level].l}敗</td></tr>`;
+    <tr><td>通算</td><td>${st[key].w}勝${st[key].l}敗</td></tr>`;
   $("result").classList.add("show");
 }
 $("againBtn").addEventListener("click", () => { sfx.ping(); startSetup(); });
@@ -623,14 +1017,12 @@ $("toTitleBtn").addEventListener("click", () => { renderTitle(); show("title"); 
 $("quitBtn").addEventListener("click", () => {
   if (over){ $("result").classList.add("show"); return; }
   if ($("quitBtn").dataset.confirm === "1"){
-    $("quitBtn").dataset.confirm = ""; $("quitBtn").textContent = "降参してタイトルへ";
-    finish(false); return;
+    $("quitBtn").dataset.confirm = ""; finish(false); return;
   }
   $("quitBtn").dataset.confirm = "1"; $("quitBtn").textContent = "本当に降参？（もう一度タップ）";
   setTimeout(() => { $("quitBtn").dataset.confirm = ""; if (!over) $("quitBtn").textContent = "降参してタイトルへ"; }, 3000);
 });
 $("muteBtn").addEventListener("click", () => { muted = !muted; $("muteBtn").textContent = muted ? "音 OFF" : "音 ON"; });
-
 
 $("ver").textContent = VERSION;
 renderTitle();
