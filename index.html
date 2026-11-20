@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#020c07">
+<title>レーダー作戦ゲーム</title>
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-title" content="レーダー作戦">
+<style>
+:root{
+  --bg:#020c07; --panel:#04170e; --line:#0f4a2c; --g:#39ff88; --g2:#1fae5c; --dim:#2a6b47;
+  --hit:#ff4a2e; --warn:#ffd23f; --txt:#c9ffe0;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
+  font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;touch-action:manipulation;overflow:hidden}
+body{background:radial-gradient(ellipse at 50% 30%,#06261a 0%,var(--bg) 70%)}
+#app{height:100%;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.screen{display:none;height:100%;flex-direction:column;align-items:center;padding:10px 12px;gap:10px;overflow-y:auto}
+.screen.active{display:flex}
+h1{margin:0;font-size:30px;letter-spacing:.12em;color:var(--g);text-shadow:0 0 12px rgba(57,255,136,.7)}
+.ttlrow{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;justify-content:center}
+.by{font-size:13px;color:var(--g2);letter-spacing:.08em;font-style:italic}
+h2{margin:0;font-size:18px;color:var(--g);letter-spacing:.08em}
+.sub{font-size:13px;color:var(--dim);letter-spacing:.3em}
+button{font:inherit;color:var(--g);background:rgba(57,255,136,.06);border:1.5px solid var(--g2);
+  border-radius:10px;padding:12px 14px;font-size:16px;font-weight:600;letter-spacing:.05em;cursor:pointer}
+button:active{background:rgba(57,255,136,.25)}
+button.on{background:var(--g);color:#012;border-color:var(--g);box-shadow:0 0 14px rgba(57,255,136,.6)}
+button:disabled{opacity:.3}
+button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
+
+/* title */
+.bigradar{width:min(70vw,280px);aspect-ratio:1;border-radius:50%;position:relative;margin:16px 0 6px;
+  border:2px solid var(--g2);box-shadow:0 0 30px rgba(57,255,136,.25),inset 0 0 40px rgba(57,255,136,.15);overflow:hidden;
+  background:repeating-radial-gradient(circle,transparent 0 18%,rgba(57,255,136,.25) 18% calc(18% + 1px)),
+    linear-gradient(transparent calc(50% - .5px),rgba(57,255,136,.3) 50%,transparent calc(50% + .5px)),
+    linear-gradient(90deg,transparent calc(50% - .5px),rgba(57,255,136,.3) 50%,transparent calc(50% + .5px))}
+.bigradar::after,.sweep::after{content:"";position:absolute;inset:-50%;
+  background:conic-gradient(from 0deg,rgba(57,255,136,.55),rgba(57,255,136,.12) 40deg,transparent 70deg);
+  animation:spin 4s linear infinite;pointer-events:none;mix-blend-mode:screen}
+.blip{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--g);box-shadow:0 0 10px var(--g);animation:blink 4s infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:0}10%{opacity:1}50%{opacity:.1}}
+.levels{display:flex;gap:8px;width:100%;max-width:360px}
+.levels button{flex:1;padding:12px 4px}
+.stats{font-size:12px;color:var(--dim);text-align:center;min-height:1.2em}
+.note{font-size:12px;color:var(--dim);text-align:center;line-height:1.6}
+
+/* boards */
+.board{display:grid;grid-template-columns:14px 1fr;grid-template-rows:14px 1fr;gap:2px}
+.board .cl{display:grid;grid-template-columns:repeat(10,1fr);font-size:9px;color:var(--dim);text-align:center;line-height:14px}
+.board .rl{display:grid;grid-template-rows:repeat(10,1fr);font-size:9px;color:var(--dim);text-align:right;align-items:center;padding-right:2px}
+.grid{display:grid;grid-template-columns:repeat(10,1fr);aspect-ratio:1;position:relative;overflow:hidden;
+  border:1.5px solid var(--g2);background:rgba(4,30,18,.85);box-shadow:0 0 18px rgba(57,255,136,.15) inset}
+.cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);position:relative}
+.cell:nth-child(10n){border-right:none}.cell:nth-last-child(-n+10){border-bottom:none}
+.sweep{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.big .grid{width:min(calc(100vw - 44px),400px)}
+.small .grid{width:min(48vw,210px)}
+.small.board{grid-template-columns:10px 1fr;grid-template-rows:10px 1fr}
+.small .cl,.small .rl{font-size:7px;line-height:10px}
+
+.cell.ship{background:#145c3a;box-shadow:inset 0 0 0 1px #2fa769}
+.cell.ship.h.s{border-radius:40% 0 0 40%}.cell.ship.h.e{border-radius:0 40% 40% 0}
+.cell.ship.v.s{border-radius:40% 40% 0 0}.cell.ship.v.e{border-radius:0 0 40% 40%}
+.cell.ship.sel{background:#2a9a60;box-shadow:inset 0 0 0 1px var(--g),0 0 8px var(--g)}
+.cell.ghost{background:rgba(57,255,136,.35)}
+.cell.bad{background:rgba(255,74,46,.45)}
+.cell.miss::after{content:"";position:absolute;left:50%;top:50%;width:26%;height:26%;transform:translate(-50%,-50%);
+  border-radius:50%;background:#3d7f5d}
+.cell.hit::after{content:"";position:absolute;left:50%;top:50%;width:60%;height:60%;transform:translate(-50%,-50%);
+  border-radius:50%;background:radial-gradient(circle,#fff3c0 0,#ffb13a 30%,var(--hit) 60%,transparent 72%);animation:pop .35s}
+.cell.sunk{background:rgba(255,74,46,.22);box-shadow:inset 0 0 0 1px rgba(255,74,46,.7)}
+.cell.reveal{background:rgba(57,255,136,.18);box-shadow:inset 0 0 0 1px rgba(57,255,136,.5)}
+.cell.last{outline:2px solid var(--warn);outline-offset:-2px;z-index:2}
+@keyframes pop{from{transform:translate(-50%,-50%) scale(2.2);opacity:.3}}
+
+/* setup */
+.shiplist{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;max-width:400px}
+.shiplist button{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;font-size:14px}
+.pips{display:flex;gap:2px}.pips i{width:8px;height:8px;background:currentColor;border-radius:2px;display:block}
+.shiplist button.done{color:var(--dim);border-color:var(--line)}
+.shiplist button.done.on{color:#012}
+.row{display:flex;gap:8px;width:100%;max-width:400px}.row button{flex:1}
+.hint{font-size:13px;color:var(--txt);text-align:center;min-height:2.6em;line-height:1.3}
+
+/* battle */
+.topbar{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:420px;font-size:13px;color:var(--dim)}
+.topbar button{padding:4px 10px;font-size:13px}
+#msg{width:100%;max-width:420px;text-align:center;font-size:16px;font-weight:700;min-height:1.5em;color:var(--g);
+  text-shadow:0 0 8px rgba(57,255,136,.6)}
+#msg.red{color:var(--hit);text-shadow:0 0 8px rgba(255,74,46,.6)}
+#msg.yellow{color:var(--warn);text-shadow:0 0 8px rgba(255,210,63,.6)}
+.label{font-size:12px;color:var(--dim);letter-spacing:.2em;align-self:flex-start;margin-left:max(0px,calc(50% - 210px))}
+.bottom{display:flex;gap:10px;width:100%;max-width:420px;align-items:flex-start}
+.fleetbox{flex:1;display:flex;flex-direction:column;gap:6px;font-size:12px;min-width:0}
+.fleetbox .ttl{color:var(--dim);letter-spacing:.15em;font-size:11px}
+.fs{display:flex;justify-content:space-between;align-items:center;gap:4px}
+.fs .pips i{width:7px;height:7px;background:var(--g2)}
+.fs .pips i.x{background:var(--hit)}
+.fs.dead{color:#7a3a30;text-decoration:line-through}
+.fs.dead .pips i{background:#5a2a24}
+#yourTurn{font-size:12px;color:var(--warn);height:1em}
+.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-4px,2px)}80%{transform:translate(3px,-1px)}}
+.flash{animation:flash .5s}
+@keyframes flash{from{box-shadow:0 0 60px rgba(255,74,46,.9) inset}}
+
+/* result */
+.overlay{position:fixed;inset:0;background:rgba(1,8,4,.86);display:none;align-items:center;justify-content:center;z-index:10;padding:20px}
+.overlay.show{display:flex}
+.card{width:100%;max-width:340px;border:1.5px solid var(--g2);border-radius:16px;background:var(--panel);padding:22px 18px;
+  display:flex;flex-direction:column;gap:12px;align-items:center;box-shadow:0 0 40px rgba(57,255,136,.2)}
+.card .res{font-size:34px;font-weight:800;letter-spacing:.15em}
+.card table{width:100%;font-size:15px;border-collapse:collapse}
+.card td{padding:5px 2px;border-bottom:1px solid var(--line)}.card td:last-child{text-align:right;color:var(--g)}
+.card button{width:100%}
+</style>
+</head>
+<body>
+<div id="app">
+
+<section id="title" class="screen active">
+  <div class="bigradar" id="bigradar"></div>
+  <div class="ttlrow"><h1>レーダー作戦</h1><span class="by">by Urushihara</span></div>
+  <div class="sub">RADAR&nbsp;OPERATION</div>
+  <div style="height:6px"></div>
+  <div class="sub" style="letter-spacing:.15em">CPUの強さ</div>
+  <div class="levels">
+    <button data-lv="easy">かんたん</button>
+    <button data-lv="normal" class="on">ふつう</button>
+    <button data-lv="hard">つよい</button>
+  </div>
+  <div class="stats" id="stats"></div>
+  <button class="big" id="goSetup">作戦開始</button>
+  <div class="note">10×10の海に5隻ずつ隠して撃ち合います。<br>先に相手の艦隊を全部沈めたほうが勝ち。</div>
+</section>
+
+<section id="setup" class="screen">
+  <h2>艦隊を配置せよ</h2>
+  <div class="hint" id="setupHint"></div>
+  <div class="board big" id="setupBoard"></div>
+  <div class="shiplist" id="shipList"></div>
+  <div class="row">
+    <button id="rotBtn">向き：横</button>
+    <button id="autoBtn">おまかせ配置</button>
+  </div>
+  <div class="row">
+    <button id="backBtn" style="flex:.5">戻る</button>
+    <button id="startBtn" class="on" disabled>出撃！</button>
+  </div>
+</section>
+
+<section id="battle" class="screen">
+  <div class="topbar">
+    <span id="lvLabel"></span>
+    <span id="turnLabel"></span>
+    <button id="muteBtn">音 ON</button>
+  </div>
+  <div id="msg"></div>
+  <div class="label">敵の海域 — タップで砲撃</div>
+  <div class="board big" id="enemyBoard"></div>
+  <div id="yourTurn"></div>
+  <div class="bottom">
+    <div>
+      <div class="label" style="margin:0 0 3px">自軍の海域</div>
+      <div class="board small" id="myBoard"></div>
+    </div>
+    <div class="fleetbox">
+      <div class="ttl">敵艦隊</div><div id="enemyFleet"></div>
+      <div class="ttl" style="margin-top:4px">自艦隊</div><div id="myFleet"></div>
+    </div>
+  </div>
+  <button id="quitBtn" style="padding:6px 14px;font-size:13px;margin-top:4px">降参してタイトルへ</button>
+</section>
+
+<div class="overlay" id="result">
+  <div class="card">
+    <div class="res" id="resTitle"></div>
+    <div id="resSub" style="font-size:13px;color:var(--dim)"></div>
+    <table id="resTable"></table>
+    <button class="on" id="againBtn">もう一度</button>
+    <button id="seeBtn">盤面を見る</button>
+    <button id="toTitleBtn">タイトルへ</button>
+  </div>
+</div>
+
+</div>
+<script>
+"use strict";
+const N = 10;
+const COLS = "ABCDEFGHIJ";
+const SHIPS = [
+  {id:"cv", name:"空母",   len:5},
+  {id:"bb", name:"戦艦",   len:4},
+  {id:"ca", name:"巡洋艦", len:3},
+  {id:"ss", name:"潜水艦", len:3},
+  {id:"dd", name:"駆逐艦", len:2},
+];
+const LV = {easy:"かんたん", normal:"ふつう", hard:"つよい"};
+const $ = id => document.getElementById(id);
+const rnd = n => Math.floor(Math.random() * n);
+const pick = a => a[rnd(a.length)];
+const inB = (r, c) => r >= 0 && r < N && c >= 0 && c < N;
+const cellsOf = (r, c, len, v) => Array.from({length:len}, (_, i) => v ? [r + i, c] : [r, c + i]);
+const coord = (r, c) => COLS[c] + "-" + (r + 1);
+
+/* ---------- storage ---------- */
+function loadStats(){ try { return JSON.parse(localStorage.getItem("radarStats")) || {}; } catch(e){ return {}; } }
+function saveStats(s){ try { localStorage.setItem("radarStats", JSON.stringify(s)); } catch(e){} }
+
+/* ---------- fleet ---------- */
+class Fleet {
+  constructor(){
+    this.ships = SHIPS.map(s => ({...s, r:-1, c:-1, v:false, placed:false, hits:0}));
+    this.grid = Array.from({length:N}, () => Array(N).fill(-1));
+    this.shots = Array.from({length:N}, () => Array(N).fill(false));
+  }
+  canPlace(i, r, c, v){
+    for (const [y, x] of cellsOf(r, c, this.ships[i].len, v)){
+      if (!inB(y, x)) return false;
+      const g = this.grid[y][x];
+      if (g !== -1 && g !== i) return false;
+    }
+    return true;
+  }
+  remove(i){
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (this.grid[y][x] === i) this.grid[y][x] = -1;
+    this.ships[i].placed = false;
+  }
+  place(i, r, c, v){
+    if (!this.canPlace(i, r, c, v)) return false;
+    this.remove(i);
+    const s = this.ships[i];
+    Object.assign(s, {r, c, v, placed:true});
+    for (const [y, x] of cellsOf(r, c, s.len, v)) this.grid[y][x] = i;
+    return true;
+  }
+  randomize(){
+    this.grid = Array.from({length:N}, () => Array(N).fill(-1));
+    this.ships.forEach(s => s.placed = false);
+    this.ships.forEach((s, i) => {
+      let ok = false;
+      while (!ok){ const v = Math.random() < .5; ok = this.place(i, rnd(N), rnd(N), v); }
+    });
+  }
+  allPlaced(){ return this.ships.every(s => s.placed); }
+  fire(r, c){
+    this.shots[r][c] = true;
+    const i = this.grid[r][c];
+    if (i === -1) return {hit:false};
+    const s = this.ships[i];
+    s.hits++;
+    return {hit:true, ship:s, sunk:s.hits >= s.len};
+  }
+  sunk(s){ return s.hits >= s.len; }
+  allSunk(){ return this.ships.every(s => this.sunk(s)); }
+  shipCells(s){ return cellsOf(s.r, s.c, s.len, s.v); }
+}
+
+/* ---------- CPU ---------- */
+// what the CPU knows about the player's sea: 0 unknown, 1 miss, 2 hit (ship not sunk), 3 sunk
+function knowledge(f){
+  const k = Array.from({length:N}, () => Array(N).fill(0));
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++){
+    if (!f.shots[y][x]) continue;
+    const i = f.grid[y][x];
+    k[y][x] = i === -1 ? 1 : (f.sunk(f.ships[i]) ? 3 : 2);
+  }
+  return k;
+}
+const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+
+function cpuPick(f, level){
+  const k = knowledge(f);
+  const unknown = [], hits = [];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++){
+    if (k[y][x] === 0) unknown.push([y, x]);
+    if (k[y][x] === 2) hits.push([y, x]);
+  }
+  const remain = f.ships.filter(s => !f.sunk(s)).map(s => s.len);
+
+  if (level === "easy"){
+    if (hits.length && Math.random() < .55){
+      const opts = [];
+      hits.forEach(([y, x]) => DIRS.forEach(([dy, dx]) => { if (inB(y+dy, x+dx) && k[y+dy][x+dx] === 0) opts.push([y+dy, x+dx]); }));
+      if (opts.length) return pick(opts);
+    }
+    return pick(unknown);
+  }
+
+  if (level === "normal"){
+    if (hits.length){ const t = targetPick(k, hits); if (t) return t; }
+    const m = Math.min(...remain);
+    const par = unknown.filter(([y, x]) => (y + x) % m === 0);
+    return pick(par.length ? par : unknown);
+  }
+
+  // hard: probability density
+  const score = Array.from({length:N}, () => Array(N).fill(0));
+  let any = false;
+  for (const len of remain){
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) for (const v of [false, true]){
+      const cs = cellsOf(r, c, len, v);
+      let ok = true, cover = 0;
+      for (const [y, x] of cs){
+        if (!inB(y, x) || k[y][x] === 1 || k[y][x] === 3){ ok = false; break; }
+        if (k[y][x] === 2) cover++;
+      }
+      if (!ok) continue;
+      if (hits.length && cover === 0) continue;
+      const w = hits.length ? Math.pow(30, cover) : 1;
+      for (const [y, x] of cs) if (k[y][x] === 0){ score[y][x] += w; any = true; }
+    }
+  }
+  if (!any){
+    if (hits.length){ const t = targetPick(k, hits); if (t) return t; }
+    return pick(unknown);
+  }
+  let best = -1, cand = [];
+  for (const [y, x] of unknown){
+    // slight checkerboard preference while hunting
+    const s = score[y][x] * (hits.length ? 1 : ((y + x) % 2 === 0 ? 1.08 : 1));
+    if (s > best + 1e-9){ best = s; cand = [[y, x]]; }
+    else if (Math.abs(s - best) < 1e-9) cand.push([y, x]);
+  }
+  return pick(cand);
+}
+
+function targetPick(k, hits){
+  // if hits form a line, extend its ends
+  const lines = [];
+  for (const [y, x] of hits){
+    for (const [dy, dx] of [[0,1],[1,0]]){
+      if (inB(y+dy, x+dx) && k[y+dy][x+dx] === 2){
+        let a = [y, x], b = [y, x];
+        while (inB(a[0]-dy, a[1]-dx) && k[a[0]-dy][a[1]-dx] === 2) a = [a[0]-dy, a[1]-dx];
+        while (inB(b[0]+dy, b[1]+dx) && k[b[0]+dy][b[1]+dx] === 2) b = [b[0]+dy, b[1]+dx];
+        const ends = [[a[0]-dy, a[1]-dx], [b[0]+dy, b[1]+dx]].filter(([p, q]) => inB(p, q) && k[p][q] === 0);
+        lines.push(...ends);
+      }
+    }
+  }
+  if (lines.length) return pick(lines);
+  const opts = [];
+  hits.forEach(([y, x]) => DIRS.forEach(([dy, dx]) => { if (inB(y+dy, x+dx) && k[y+dy][x+dx] === 0) opts.push([y+dy, x+dx]); }));
+  return opts.length ? pick(opts) : null;
+}
+
+/* ---------- sound ---------- */
+let ac = null, muted = false;
+function initAudio(){
+  try {
+    if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){}
+}
+document.addEventListener("touchend", initAudio, {passive:true});
+document.addEventListener("click", initAudio);
+function tone(f, dur, type = "sine", gain = .1, f2 = null, delay = 0){
+  if (!ac || muted) return;
+  const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+  g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur + .05);
+}
+function noise(dur, ftype, freq, gain, delay = 0){
+  if (!ac || muted) return;
+  const t = ac.currentTime + delay;
+  const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * dur), ac.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
+  const s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain();
+  s.buffer = buf; fl.type = ftype; fl.frequency.value = freq; g.gain.value = gain;
+  s.connect(fl).connect(g).connect(ac.destination); s.start(t);
+}
+const sfx = {
+  tap:  () => tone(1400, .05, "square", .03),
+  fire: () => { tone(700, .18, "square", .04, 120); noise(.15, "bandpass", 1200, .2); },
+  miss: () => { noise(.5, "highpass", 1800, .25, .15); tone(300, .25, "sine", .04, 150, .15); },
+  hit:  () => { noise(.7, "lowpass", 900, .9, .12); tone(110, .5, "sawtooth", .12, 35, .12); },
+  sunk: () => { noise(1.4, "lowpass", 500, 1.2, .12); tone(90, 1.2, "sawtooth", .15, 25, .12); tone(60, 1.2, "sine", .3, 20, .3); },
+  ping: () => tone(1250, .9, "sine", .07),
+  win:  () => [523, 659, 784, 1046].forEach((f, i) => tone(f, .35, "triangle", .1, null, i * .14)),
+  lose: () => [392, 330, 262, 196].forEach((f, i) => tone(f, .45, "triangle", .1, null, i * .2)),
+};
+
+/* ---------- board UI ---------- */
+function makeBoard(el, onTap){
+  el.innerHTML = "";
+  const corner = document.createElement("div");
+  const cl = document.createElement("div"); cl.className = "cl";
+  for (const ch of COLS){ const s = document.createElement("span"); s.textContent = ch; cl.appendChild(s); }
+  const rl = document.createElement("div"); rl.className = "rl";
+  for (let i = 1; i <= N; i++){ const s = document.createElement("span"); s.textContent = i; rl.appendChild(s); }
+  const g = document.createElement("div"); g.className = "grid";
+  const cells = [];
+  for (let r = 0; r < N; r++){
+    cells.push([]);
+    for (let c = 0; c < N; c++){
+      const d = document.createElement("div"); d.className = "cell";
+      if (onTap) d.addEventListener("click", () => onTap(r, c));
+      g.appendChild(d); cells[r].push(d);
+    }
+  }
+  el.append(corner, cl, rl, g);
+  return {grid:g, cells};
+}
+function shipClasses(f, r, c){
+  const i = f.grid[r][c]; if (i === -1) return "";
+  const s = f.ships[i]; const idx = s.v ? r - s.r : c - s.c;
+  return "ship " + (s.v ? "v" : "h") + (idx === 0 ? " s" : "") + (idx === s.len - 1 ? " e" : "");
+}
+function pipsHTML(len, hits = 0){
+  let h = '<span class="pips">';
+  for (let i = 0; i < len; i++) h += i < hits ? '<i class="x"></i>' : "<i></i>";
+  return h + "</span>";
+}
+
+/* ---------- state ---------- */
+let level = "normal";
+let player, enemy, setupUI, enemyUI, myUI;
+let selShip = 0, vert = false, busy = false, over = false;
+let pShots = 0, pHits = 0, cShots = 0, cHits = 0, turn = 1, lastCpu = null;
+
+function show(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
+  $("result").classList.remove("show");
+}
+
+/* ---------- title ---------- */
+function renderTitle(){
+  const st = loadStats();
+  const parts = Object.keys(LV).map(k => { const s = st[k] || {w:0, l:0}; return `${LV[k]} ${s.w}勝${s.l}敗`; });
+  $("stats").textContent = "戦績：" + parts.join(" ／ ");
+  const br = $("bigradar"); br.querySelectorAll(".blip").forEach(b => b.remove());
+  for (let i = 0; i < 4; i++){
+    const b = document.createElement("div"); b.className = "blip";
+    const a = Math.random() * Math.PI * 2, d = 15 + Math.random() * 30;
+    b.style.left = (50 + Math.cos(a) * d) + "%"; b.style.top = (50 + Math.sin(a) * d) + "%";
+    b.style.animationDelay = (Math.random() * 4) + "s";
+    br.appendChild(b);
+  }
+}
+document.querySelectorAll(".levels button").forEach(b => b.addEventListener("click", () => {
+  level = b.dataset.lv; sfx.tap();
+  document.querySelectorAll(".levels button").forEach(x => x.classList.toggle("on", x === b));
+}));
+$("goSetup").addEventListener("click", () => { sfx.ping(); startSetup(); });
+
+/* ---------- setup ---------- */
+function startSetup(){
+  player = new Fleet(); selShip = 0; vert = false;
+  setupUI = makeBoard($("setupBoard"), setupTap);
+  show("setup"); renderSetup();
+}
+function setupTap(r, c){
+  const at = player.grid[r][c];
+  if (at !== -1 && at !== selShip){ selShip = at; vert = player.ships[at].v; sfx.tap(); renderSetup(); return; }
+  if (at === selShip){ // rotate in place
+    const s = player.ships[selShip];
+    if (player.place(selShip, s.r, s.c, !s.v)){ vert = s.v; sfx.tap(); }
+    else flashBad(player.shipCells(s));
+    renderSetup(); return;
+  }
+  const len = player.ships[selShip].len;
+  let rr = r, cc = c;
+  if (vert) rr = Math.min(r, N - len); else cc = Math.min(c, N - len);
+  if (player.place(selShip, rr, cc, vert)){
+    sfx.tap();
+    const next = player.ships.findIndex((s, i) => !s.placed && i !== selShip);
+    if (next !== -1) selShip = next;
+  } else flashBad(cellsOf(rr, cc, len, vert));
+  renderSetup();
+}
+function flashBad(cs){
+  cs.forEach(([y, x]) => { if (inB(y, x)) setupUI.cells[y][x].classList.add("bad"); });
+  setTimeout(() => cs.forEach(([y, x]) => { if (inB(y, x)) setupUI.cells[y][x].classList.remove("bad"); }), 350);
+}
+function renderSetup(){
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++){
+    const sc = shipClasses(player, r, c);
+    setupUI.cells[r][c].className = "cell " + sc + (sc && player.grid[r][c] === selShip ? " sel" : "");
+  }
+  const L = $("shipList"); L.innerHTML = "";
+  player.ships.forEach((s, i) => {
+    const b = document.createElement("button");
+    b.className = (i === selShip ? "on " : "") + (s.placed ? "done" : "");
+    b.innerHTML = `<span>${s.placed ? "✓ " : ""}${s.name}</span>${pipsHTML(s.len)}`;
+    b.addEventListener("click", () => { selShip = i; vert = s.placed ? s.v : vert; sfx.tap(); renderSetup(); });
+    L.appendChild(b);
+  });
+  $("rotBtn").textContent = "向き：" + (vert ? "縦" : "横");
+  $("startBtn").disabled = !player.allPlaced();
+  const s = player.ships[selShip];
+  $("setupHint").innerHTML = player.allPlaced()
+    ? "配置完了！ 艦をタップで選び直し／もう一度タップで回転"
+    : `<b style="color:var(--g)">${s.name}（${s.len}マス）</b>${s.placed ? "を動かす場所をタップ" : "を置く場所をタップ"}<br><span style="color:var(--dim);font-size:12px">置いた艦をタップすると回転</span>`;
+}
+$("rotBtn").addEventListener("click", () => {
+  vert = !vert; sfx.tap();
+  const s = player.ships[selShip];
+  if (s.placed && !player.place(selShip, s.r, s.c, vert)){ vert = s.v; flashBad(cellsOf(s.r, s.c, s.len, !s.v)); }
+  renderSetup();
+});
+$("autoBtn").addEventListener("click", () => { player.randomize(); vert = player.ships[selShip].v; sfx.ping(); renderSetup(); });
+$("backBtn").addEventListener("click", () => { renderTitle(); show("title"); });
+$("startBtn").addEventListener("click", startBattle);
+
+/* ---------- battle ---------- */
+function startBattle(){
+  enemy = new Fleet(); enemy.randomize();
+  $("quitBtn").textContent = "降参してタイトルへ"; $("quitBtn").dataset.confirm = "";
+  pShots = pHits = cShots = cHits = 0; turn = 1; lastCpu = null; busy = false; over = false;
+  enemyUI = makeBoard($("enemyBoard"), playerFire);
+  const sw = document.createElement("div"); sw.className = "sweep"; enemyUI.grid.appendChild(sw);
+  myUI = makeBoard($("myBoard"), null);
+  $("lvLabel").textContent = "CPU：" + LV[level];
+  show("battle"); sfx.ping();
+  setMsg("敵艦隊を捜索せよ！", "");
+  renderBattle();
+}
+function setMsg(t, cls){ const m = $("msg"); m.textContent = t; m.className = cls || ""; }
+function renderBattle(reveal = false){
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++){
+    // enemy sea
+    let cl = "cell";
+    const ei = enemy.grid[r][c];
+    if (enemy.shots[r][c]){
+      if (ei === -1) cl += " miss";
+      else { cl += " hit"; if (enemy.sunk(enemy.ships[ei])) cl += " sunk"; }
+    } else if (reveal && ei !== -1) cl += " reveal";
+    enemyUI.cells[r][c].className = cl;
+    // my sea
+    let ml = "cell " + shipClasses(player, r, c);
+    if (player.shots[r][c]){
+      const pi = player.grid[r][c];
+      ml += pi === -1 ? " miss" : " hit" + (player.sunk(player.ships[pi]) ? " sunk" : "");
+    }
+    if (lastCpu && lastCpu[0] === r && lastCpu[1] === c) ml += " last";
+    myUI.cells[r][c].className = ml;
+  }
+  $("turnLabel").textContent = `ターン ${turn}`;
+  const fl = (f, el, showHits) => {
+    el.innerHTML = f.ships.map(s =>
+      `<div class="fs ${f.sunk(s) ? "dead" : ""}"><span>${s.name}</span>${pipsHTML(s.len, showHits ? s.hits : (f.sunk(s) ? s.len : 0))}</div>`).join("");
+  };
+  fl(enemy, $("enemyFleet"), false);
+  fl(player, $("myFleet"), true);
+  $("yourTurn").textContent = (!busy && !over) ? "▼ あなたの番です" : "";
+}
+function playerFire(r, c){
+  if (busy || over || enemy.shots[r][c]) return;
+  busy = true; pShots++;
+  sfx.fire();
+  const res = enemy.fire(r, c);
+  if (res.hit){
+    pHits++;
+    if (res.sunk){ sfx.sunk(); setMsg(`${coord(r, c)} 撃沈！ 敵の${res.ship.name}を沈めた！`, "yellow"); shake(); }
+    else { sfx.hit(); setMsg(`${coord(r, c)} 命中！`, "yellow"); }
+  } else { sfx.miss(); setMsg(`${coord(r, c)} はずれ`, ""); }
+  renderBattle();
+  if (enemy.allSunk()){ setTimeout(() => finish(true), 1200); return; }
+  setTimeout(cpuTurn, res.sunk ? 1500 : 1000);
+}
+function cpuTurn(){
+  if (over) return;
+  setMsg("敵の砲撃…", "red");
+  setTimeout(() => {
+    const [r, c] = cpuPick(player, level);
+    cShots++; lastCpu = [r, c];
+    const res = player.fire(r, c);
+    if (res.hit){
+      cHits++;
+      if (res.sunk){ sfx.sunk(); setMsg(`敵弾 ${coord(r, c)} 撃沈された！ 自軍の${res.ship.name}が沈没`, "red"); }
+      else { sfx.hit(); setMsg(`敵弾 ${coord(r, c)} 被弾！ ${res.ship.name}に命中`, "red"); }
+      shake(true);
+    } else { sfx.miss(); setMsg(`敵弾 ${coord(r, c)} はずれ`, ""); }
+    if (player.allSunk()){ busy = true; renderBattle(); setTimeout(() => finish(false), 1300); return; }
+    turn++; busy = false; renderBattle();
+  }, 500);
+}
+function shake(red){
+  const b = $("battle");
+  b.classList.remove("shake", "flash"); void b.offsetWidth;
+  b.classList.add("shake"); if (red) b.classList.add("flash");
+}
+function finish(win){
+  over = true; busy = true;
+  const st = loadStats(); st[level] = st[level] || {w:0, l:0};
+  win ? st[level].w++ : st[level].l++; saveStats(st);
+  renderBattle(true);
+  win ? sfx.win() : sfx.lose();
+  $("resTitle").textContent = win ? "勝利" : "敗北";
+  $("resTitle").style.color = win ? "var(--g)" : "var(--hit)";
+  $("resSub").textContent = win ? "敵艦隊を全滅させた！" : "自軍艦隊は全滅した…";
+  const acc = pShots ? Math.round(pHits / pShots * 100) : 0;
+  const cacc = cShots ? Math.round(cHits / cShots * 100) : 0;
+  $("resTable").innerHTML = `
+    <tr><td>CPUの強さ</td><td>${LV[level]}</td></tr>
+    <tr><td>ターン数</td><td>${turn}</td></tr>
+    <tr><td>あなたの命中率</td><td>${acc}%（${pHits}/${pShots}）</td></tr>
+    <tr><td>CPUの命中率</td><td>${cacc}%（${cHits}/${cShots}）</td></tr>
+    <tr><td>通算（${LV[level]}）</td><td>${st[level].w}勝${st[level].l}敗</td></tr>`;
+  $("result").classList.add("show");
+}
+$("againBtn").addEventListener("click", () => { sfx.ping(); startSetup(); });
+$("seeBtn").addEventListener("click", () => {
+  $("result").classList.remove("show");
+  setMsg("敵艦の位置を表示中（緑の枠）", "");
+  $("quitBtn").textContent = "結果に戻る";
+});
+$("toTitleBtn").addEventListener("click", () => { renderTitle(); show("title"); });
+$("quitBtn").addEventListener("click", () => {
+  if (over){ $("result").classList.add("show"); return; }
+  if ($("quitBtn").dataset.confirm === "1"){
+    $("quitBtn").dataset.confirm = ""; $("quitBtn").textContent = "降参してタイトルへ";
+    finish(false); return;
+  }
+  $("quitBtn").dataset.confirm = "1"; $("quitBtn").textContent = "本当に降参？（もう一度タップ）";
+  setTimeout(() => { $("quitBtn").dataset.confirm = ""; if (!over) $("quitBtn").textContent = "降参してタイトルへ"; }, 3000);
+});
+$("muteBtn").addEventListener("click", () => { muted = !muted; $("muteBtn").textContent = muted ? "音 OFF" : "音 ON"; });
+
+
+renderTitle();
+</script>
+</body>
+</html>
