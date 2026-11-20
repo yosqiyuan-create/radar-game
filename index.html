@@ -23,6 +23,7 @@ body{background:radial-gradient(ellipse at 50% 30%,#06261a 0%,var(--bg) 70%)}
 #app{height:100%;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 .screen{display:none;height:100%;flex-direction:column;align-items:center;padding:10px 12px;gap:10px;overflow-y:auto}
 .screen.active{display:flex}
+#title{gap:8px}
 h1{margin:0;font-size:30px;letter-spacing:.12em;color:var(--g);text-shadow:0 0 12px rgba(57,255,136,.7)}
 .ttlrow{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;justify-content:center}
 .ver{font-size:12px;color:#012;background:var(--g2);border-radius:6px;padding:2px 7px;font-weight:700;letter-spacing:.05em;align-self:center}
@@ -37,7 +38,7 @@ button:disabled{opacity:.3}
 button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 
 /* title */
-.bigradar{width:min(58vw,230px);aspect-ratio:1;border-radius:50%;position:relative;margin:10px 0 4px;flex-shrink:0;
+.bigradar{width:min(58vw,230px,27vh);aspect-ratio:1;border-radius:50%;position:relative;margin:10px 0 4px;flex-shrink:0;
   border:2px solid var(--g2);box-shadow:0 0 30px rgba(57,255,136,.25),inset 0 0 40px rgba(57,255,136,.15);overflow:hidden;
   background:repeating-radial-gradient(circle,transparent 0 18%,rgba(57,255,136,.25) 18% calc(18% + 1px)),
     linear-gradient(transparent calc(50% - .5px),rgba(57,255,136,.3) 50%,transparent calc(50% + .5px)),
@@ -108,7 +109,9 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 /* battle */
 #battle{gap:6px}
 .topbar{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:420px;font-size:13px;color:var(--dim)}
-.topbar button{padding:4px 10px;font-size:13px}
+.topbar button{padding:4px 8px;font-size:12px;white-space:nowrap}
+.topbar>span{white-space:nowrap}
+.topbar button.off{opacity:.45;text-decoration:line-through}
 #msg{width:100%;max-width:420px;text-align:center;font-size:15px;font-weight:700;min-height:2.6em;color:var(--g);
   text-shadow:0 0 8px rgba(57,255,136,.6);display:flex;align-items:center;justify-content:center;line-height:1.3}
 #msg.red{color:var(--hit);text-shadow:0 0 8px rgba(255,74,46,.6)}
@@ -157,6 +160,7 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 <div id="app">
 
 <section id="title" class="screen active">
+  <div class="topbar" style="justify-content:flex-end;gap:6px"><button class="bgmBtn">BGM</button><button class="muteBtn">音</button></div>
   <div class="bigradar" id="bigradar"></div>
   <div class="ttlrow"><h1>レーダー作戦</h1><span class="ver" id="ver"></span><span class="by">by Urushihara</span></div>
   <div class="sub">RADAR&nbsp;OPERATION</div>
@@ -195,7 +199,7 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
   <div class="topbar">
     <span id="lvLabel"></span>
     <span id="turnLabel"></span>
-    <span style="display:flex;gap:6px"><button id="quitBtn">降参</button><button id="muteBtn">音 ON</button></span>
+    <span style="display:flex;gap:4px"><button id="quitBtn">降参</button><button class="bgmBtn">BGM</button><button class="muteBtn">音</button></span>
   </div>
   <div id="msg"></div>
   <div class="board big" id="enemyBoard"></div>
@@ -249,7 +253,7 @@ button.big{width:100%;max-width:360px;padding:16px;font-size:19px}
 </div>
 <script>
 "use strict";
-const VERSION = "v1.2";
+const VERSION = "v1.3";
 const N = 10;
 const COLS = "ABCDEFGHIJ";
 const SHIPS = [
@@ -619,12 +623,71 @@ function cpuDecide(def, own, level, ai, mode){
 function cpuPick(f, level){ const d = cpuDecide(f, null, level, {scans:[], cd:{}}, "classic"); return [d.r, d.c]; }
 
 /* ---------- sound ---------- */
-let ac = null, muted = false;
+let ac = null, muted = false, bgmOn = true, bgm = null;
+try { muted = localStorage.getItem("radarMuted") === "1"; bgmOn = localStorage.getItem("radarBgm") !== "0"; } catch(e){}
 function initAudio(){
   try {
+    // play even when the iPhone is in silent mode (Safari 17+)
+    if (navigator.audioSession) navigator.audioSession.type = "playback";
     if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
     if (ac.state === "suspended") ac.resume();
+    startBgm();
   } catch(e){}
+}
+document.addEventListener("visibilitychange", () => {
+  if (!ac) return;
+  try { document.hidden ? ac.suspend() : ac.resume(); } catch(e){}
+});
+
+/* ---------- BGM: radar room ambience ---------- */
+function startBgm(){
+  if (!ac || bgm) return;
+  const out = ac.createGain(); out.gain.value = (muted || !bgmOn) ? 0 : 1; out.connect(ac.destination);
+  // low engine-room drone
+  const dg = ac.createGain(); dg.gain.value = .045; dg.connect(out);
+  [[55, 1], [82.4, .45], [110.6, .2]].forEach(([f, v]) => {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = "sine"; o.frequency.value = f; g.gain.value = v; o.connect(g).connect(dg); o.start();
+  });
+  const lfo = ac.createOscillator(), lg = ac.createGain();
+  lfo.frequency.value = .11; lg.gain.value = .02; lfo.connect(lg).connect(dg.gain); lfo.start();
+  // soft sea hiss
+  const nb = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate), nd = nb.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  const ns = ac.createBufferSource(), nf = ac.createBiquadFilter(), ng = ac.createGain();
+  ns.buffer = nb; ns.loop = true; nf.type = "lowpass"; nf.frequency.value = 320; ng.gain.value = .045;
+  ns.connect(nf).connect(ng).connect(out); ns.start();
+  // echo for sonar pings
+  const delay = ac.createDelay(1), fb = ac.createGain(), wet = ac.createGain();
+  delay.delayTime.value = .45; fb.gain.value = .42; wet.gain.value = .7;
+  delay.connect(fb).connect(delay); delay.connect(wet).connect(out);
+  const bus = ac.createGain(); bus.connect(out); bus.connect(delay);
+  bgm = {out, bus, next: ac.currentTime + .4};
+  setInterval(() => {
+    if (!ac || ac.state !== "running") return;
+    if (bgm.next < ac.currentTime) bgm.next = ac.currentTime + .1;
+    while (bgm.next < ac.currentTime + .6){ bgmPing(bgm.next); bgm.next += 4; }
+  }, 200);
+}
+function bgmPing(t){
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = "sine"; o.frequency.setValueAtTime(1180, t); o.frequency.exponentialRampToValueAtTime(1120, t + 1.3);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.07, t + .015); g.gain.exponentialRampToValueAtTime(.0001, t + 1.5);
+  o.connect(g).connect(bgm.bus); o.start(t); o.stop(t + 1.6);
+  // faint radar blips between pings
+  const nBlips = rnd(3);
+  for (let i = 0; i < nBlips; i++){
+    const tb = t + .8 + Math.random() * 2.8, ob = ac.createOscillator(), gb = ac.createGain();
+    ob.type = "square"; ob.frequency.value = 1700 + rnd(600);
+    gb.gain.setValueAtTime(.008, tb); gb.gain.exponentialRampToValueAtTime(.0001, tb + .06);
+    ob.connect(gb).connect(bgm.out); ob.start(tb); ob.stop(tb + .08);
+  }
+}
+function applySound(){
+  if (bgm) bgm.out.gain.setTargetAtTime((muted || !bgmOn) ? 0 : 1, ac.currentTime, .1);
+  try { localStorage.setItem("radarMuted", muted ? "1" : "0"); localStorage.setItem("radarBgm", bgmOn ? "1" : "0"); } catch(e){}
+  document.querySelectorAll(".muteBtn").forEach(b => b.classList.toggle("off", muted));
+  document.querySelectorAll(".bgmBtn").forEach(b => b.classList.toggle("off", !bgmOn));
 }
 document.addEventListener("touchend", initAudio, {passive:true});
 document.addEventListener("click", initAudio);
@@ -821,7 +884,7 @@ function startBattle(){
   $("battle").classList.toggle("op", mode === "op");
   $("acts").style.display = $("actRow").style.display = mode === "op" ? "" : "none";
   buildActs();
-  $("lvLabel").textContent = `${MODE[mode]}／CPU：${LV[level]}`;
+  $("lvLabel").textContent = `${MODE[mode]}・${LV[level]}`;
   show("battle"); sfx.ping();
   setMsg("敵艦隊を捜索せよ！", "");
   renderBattle();
@@ -1021,7 +1084,9 @@ $("quitBtn").addEventListener("click", () => {
   $("quitBtn").dataset.confirm = "1"; $("quitBtn").textContent = "本当に？";
   setTimeout(() => { $("quitBtn").dataset.confirm = ""; if (!over) $("quitBtn").textContent = "降参"; }, 3000);
 });
-$("muteBtn").addEventListener("click", () => { muted = !muted; $("muteBtn").textContent = muted ? "音 OFF" : "音 ON"; });
+document.querySelectorAll(".muteBtn").forEach(b => b.addEventListener("click", () => { muted = !muted; applySound(); }));
+document.querySelectorAll(".bgmBtn").forEach(b => b.addEventListener("click", () => { bgmOn = !bgmOn; applySound(); }));
+applySound();
 
 $("ver").textContent = VERSION;
 renderTitle();
